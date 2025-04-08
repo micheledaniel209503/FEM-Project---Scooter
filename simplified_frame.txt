@@ -214,20 +214,24 @@ FINISH
 /SOLUTION
 ANTYPE, STATIC, NEW   !static solution
 
-! Fixed steering head (KP36)
-! K,36,-171.87,474.88,0
+! Steering head constraint
+! KP36
 NSEL, S, LOC, X, -171.87 - 25, -171.87 + 25
 NSEL, R, LOC, Y, 474.88 - 25, 474.88 + 25
 NSEL, R, LOC, Z, 0 - Eps, 0 + Eps
 
-! Hinge constraint in 3D
-D, ALL, UX,0
 D, ALL, UY,0
-D, ALL, UZ,0
-D, ALL, ROTX,0
-D, ALL, ROTY,0
 
-NSEL, ALL
+ALLSEL, ALL
+
+! Swingarm pivot constraint
+ LSEL, S, LINE,,5
+ LSEL, A, LINE,,15
+ NSLL, S, 1
+
+ D, ALL, UX,0
+
+ ALLSEL, ALL
 
 ! Rear suspension pivot constraint 
 ! KP23 (left side)
@@ -239,7 +243,6 @@ NSEL, A, LOC, Z, -200 - Eps, -200 + Eps
 NSEL, R, LOC, Y, 490.96 - 35, 490.96 + 35
 NSEL, R, LOC, X, 1105.73 - 35, 1105.73 + 35
 
-! Roller contraint in 3D
 D, ALL, UY,0
 D, ALL, UZ,0
 D, ALL, ROTX,0
