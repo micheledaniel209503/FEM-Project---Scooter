@@ -1,0 +1,404 @@
+FINISH
+/CLEAR, START, NEW  ! Clear previous data and start a new session
+
+! Parameters definition
+
+!element thin tube
+R_in_thin = 15.05	!inner radius
+R_out_thin = 17.45	!outer radius
+
+!element thick tube
+R_in_thick = 20.45	!inner radius
+R_out_thick = 24.13	!outer radius
+
+! >>>>> MATERIAL PROPERTIES <<<<< TO BE MODIFIED
+E_Young = 210000  
+ni = 0.29	    
+Density=7.85e-6		
+
+! >>>>> other parameters <<<<<
+E_length_straight = 10	! element length (straight part)
+E_length_arc = 1
+Eps = 1E-4	! selection tolerance
+
+
+
+/PREP7  ! Modalità di pre-processing
+
+ET, 1, BEAM189  
+! Material properties
+MP, EX, 1, E_Young  
+MP, PRXY, 1, ni     
+MP, DENS, 1, density  
+
+! Data thick cross section (Cylindrical Tube)
+SECTYPE, 1, BEAM, CTUBE, thicktube
+SECDATA, R_in_thick, R_out_thick  
+
+! Data thin cross section (Cylindrical Tube)
+SECTYPE, 2, BEAM, CTUBE, thintube
+SECDATA, R_in_thin, R_out_thin  ! Parametri della sezione del tirante (tubo cavo)
+
+! >>>>> GEOMETRY DEFINITION <<<<<
+
+! Keypoints and lines creation (symmetric part, left side)
+K,1,-20.98,113.55,0
+K,2,-6.22,33.68,140.67
+K,3,62.97,44.17,139.36 ! Centro arco
+K,4,67.84,9.53,200
+K,5,565.45,79.47,200
+K,6,555.71,148.79,200 ! Centro arco
+K,7,611.61,106.66,200
+K,8,821.60,385.33,200
+K,9,877.51,343.2,200 ! Centro arco
+K,10,855.88,409.78,200 
+K,11,1226.2,530.11,200
+
+! Keypoints and lines creation (symmetric part, right side)
+K,12,-6.22,33.68,-140.67  
+K,13,62.97,44.17,-139.36 ! Arc center
+K,14,67.84,9.53,-200
+K,15,565.45,79.47,-200 
+K,16,555.71,148.79,-200 ! Arc center
+K,17,611.61,106.66,-200
+K,18,821.60,385.33,-200 
+K,19,877.51,343.2,-200 ! Arc center
+K,20,855.88,409.78,-200 
+K,21,1226.2,530.11,-200
+
+!Transverse sections
+K,22,1048.21,395.72,0 ! Arc center
+K,23,1105.73,490.96,200
+K,24,1105.73,490.96,-200
+K,25,672.18,187.04,200
+K,26,672.18,187.04,-200
+K,27,300,42.16,200
+K,28,300,495.44,0 ! Arc center
+K,29,300,42.16,-200
+
+!central section (steering wheel pivot)
+K,30,300,0,0
+K,31,58.25,0,0
+K,32,58.25,70,0 ! Arc center
+K,33,-10.58,57.28,0
+K,34,-113.26,612.95,0
+K,35,-54.65,751.03,0
+K,36,-171.87,474.88,0
+
+! Lines creation
+
+! symmetric part, left side
+L,1,2
+LARC,2,4,3,70
+L,4,27
+L,27,5
+LARC,5,7,6,70
+L,7,25
+L,25,8
+LARC,8,10,9,70
+L,10,23
+L,23,11
+
+! symmetric part, right side
+L,1,12
+LARC,12,14,13,70
+L,14,29
+L,29,15
+LARC,15,17,16,70
+L,17,26
+L,26,18
+LARC,18,20,19,70
+L,20,24
+L,24,21
+
+! Transverse sections
+LARC,11,21,22,300
+L,23,24
+L,25,26
+LARC,27,30,28,500
+LARC,30,29,28,500
+
+! Central section (steering wheel pivot)
+L,30,31
+LARC,31,33,32,70
+L,33,1
+L,1,34
+L,35,34
+L,34,36
+
+! Element definition
+
+! Left side straight lines
+LSEL,S,LINE,,1
+LSEL,A,LINE,,3
+LSEL,A,LINE,,4
+LSEL,A,LINE,,6
+LSEL,A,LINE,,7
+LSEL,A,LINE,,9
+LSEL,A,LINE,,10
+! Right side straight lines
+LSEL,A,LINE,,11
+LSEL,A,LINE,,13
+LSEL,A,LINE,,14
+LSEL,A,LINE,,16
+LSEL,A,LINE,,17
+LSEL,A,LINE,,19
+LSEL,A,LINE,,20
+! Transverse straight lines
+LSEL,A,LINE,,22
+LSEL,A,LINE,,23
+
+
+LESIZE, ALL,E_length_straight
+LATT,1,,1,,,,2
+LSEL,ALL,ALL
+
+! Left side arc lines
+LSEL,S,LINE,,2
+LSEL,A,LINE,,5
+LSEL,A,LINE,,8
+! Right side arc lines
+LSEL,A,LINE,,12
+LSEL,A,LINE,,15
+LSEL,A,LINE,,18
+! Transverse arc lines
+LSEL,A,LINE,,21
+LSEL,A,LINE,,24
+LSEL,A,LINE,,25
+
+LESIZE, ALL,E_length_arc
+LATT,1,,1,,,,2
+LSEL,ALL,ALL
+! Central section straight lines (thick tube)
+LSEL,S,LINE,,26
+LSEL,A,LINE,,28
+LSEL,A,LINE,,29
+LSEL,A,LINE,,30
+LSEL,A,LINE,,31
+LESIZE, ALL,E_length_straight
+LATT,1,,1,,,,1
+LSEL,ALL,ALL
+! Central section arc lines (thick tube)
+LSEL,S,LINE,,27
+LESIZE, ALL,E_length_arc
+LATT,1,,1,,,,1
+LSEL,ALL,ALL
+
+! ORIENTATION OF SECTION FOR L3, L4
+LSEL, S, LINE,,3
+LSEL, A, LINE,,4
+LATT,1,,1,,6,,2
+LSEL, ALL, ALL
+! ORIENTATION OF SECTION FOR L13, L14
+LSEL, S, LINE,,13
+LSEL, A, LINE,,14
+LATT,1,,1,,16,,2
+LSEL, ALL, ALL
+! ORIENTATION OF SECTION FOR L9, L10
+LSEL, S, LINE,,9
+LSEL, A, LINE,,10
+LATT,1,,1,,9,,2
+LSEL, ALL, ALL
+! ORIENTATION OF SECTION FOR L19, L20
+LSEL, S, LINE,,19
+LSEL, A, LINE,,20
+LATT,1,,1,,19,,2
+LSEL, ALL, ALL
+
+LMESH,ALL
+NUMMRG,NODE,0.01
+
+! Define the center of the rear suspension pivot LEFT SIDE (Master nodes)
+*GET, max_node_L, NODE, 0, NUM, MAXD
+N, max_node_L+1, 1101.3, 433.5, 200
+!N,3866,1101.3,433.5,-200
+! MPC184 element
+ET,2,184
+KEYOPT,2,1,1
+TYPE,2
+! Define a local RF. positioned at K23 and oriented as the beam
+LOCAL,11,0         
+CSYS,0
+LOCAL,11,0, 1105.7,491.0,200,18.0
+CSYS,11
+! Select the nodes that lies in the interval +35, -35 mm from the RF
+NSEL, S, LOC, Z, 0.0 - Eps, 0.0 + Eps
+NSEL, R, LOC, Y, 0.0 - 1, 0.0 + 1
+NSEL, R, LOC, X, 0.0 - 35, 0.0 + 35
+CSYS,0
+*GET, num_nodes, NODE, 0, COUNT
+*DO, ii, 1, num_nodes,1
+    *GET, n_node, NODE, 0, NUM, MAX
+    E,max_node_L+1,n_node
+    NSEL, U, NODE, , n_node
+*ENDDO
+ALLSEL, ALL
+
+! Define the center of the rear suspension pivot RIGHT SIDE (Master nodes)
+*GET, max_node_R, NODE, 0, NUM, MAXD
+N,max_node_R+1,1101.3,433.5,-200
+! Define a local RF. positioned at K23 and oriented as the beam
+LOCAL,12,0         
+CSYS,0
+LOCAL,12,0, 1105.7,491.0,-200,18.0
+CSYS,12
+! Select the nodes that lies in the interval +35, -35 mm from the RF
+NSEL, S, LOC, Z, 0.0 - Eps, 0.0 + Eps
+NSEL, R, LOC, Y, 0.0 - 1, 0.0 + 1
+NSEL, R, LOC, X, 0.0 - 35, 0.0 + 35
+CSYS,0
+*GET, num_nodes, NODE, 0, COUNT
+*DO, ii, 1, num_nodes,1
+    *GET, n_node, NODE, 0, NUM, MAX
+    E,max_node_R+1,n_node
+    NSEL, U, NODE, , n_node
+*ENDDO
+ALLSEL, ALL
+
+! Define the front wheel pivot (Master nodes)
+*GET, max_node_F, NODE, 0, NUM, MAXD
+N, max_node_F+1, -373.4, 0, 0
+LOCAL, 13, 0         
+CSYS, 0
+LOCAL, 13, 0, -171.9, 474.9, 0, 67.0
+CSYS,13
+! Select the nodes that lies in the interval 0, +20 mm from the RF (housing of the bearing)
+NSEL, S, LOC, Y, 0.0 - 1, 0.0 + 1
+NSEL, R, LOC, Z, 0.0 - 1, 0.0 + 1
+NSEL, R, LOC, X, 0.0 - 1, 0.0 + 20
+CSYS,0
+*GET, num_nodes, NODE, 0, COUNT
+*DO, ii, 1, num_nodes,1
+    *GET, n_node, NODE, 0, NUM, MAX
+    E,max_node_F+1,n_node
+    NSEL, U, NODE, , n_node
+*ENDDO
+ALLSEL, ALL
+
+
+/ESHAPE,1
+/VIEW, 1, 1, 1, 1
+EPLOT
+FINISH  
+
+
+/SOLUTION
+ANTYPE, STATIC, NEW   !static solution
+
+! >>>>> CONSTRAINT DEFINITION <<<<<
+
+! Constraint on the rear suspension
+NSEL, S, NODE, , max_node_L+1, max_node_R+1
+D, ALL, UX, 0
+D, ALL, UY, 0
+D, ALL, UZ, 0
+ALLSEL, ALL
+
+! Constraint on the front wheel pivot  
+NSEL, S, NODE, , max_node_F+1
+D, ALL, UY, 0
+D, ALL, UZ, 0
+ALLSEL, ALL
+
+! >>>>> LOAD DEFINITION <<<<<
+
+! Geometric data
+L1 = 0.600 ! (m) 
+p = 1.4 ! (m)
+semiper_thin = 3.14*R_out_thin ! (mm)
+
+! External forces data
+g = 10
+Wtot = 180*g ! Total weight (N)
+W1 = Wtot*0.15 ! Weight on the cradle (N)
+W2 = Wtot*0.50 ! Weight on the front seat (N)
+W3 = Wtot*0.35 ! Weight on the back seat
+Wbatt = 45*g ! Battery weight (N)
+
+! LOADS
+
+! Cradle
+W1_half = W1/2
+LSEL, S, LINE,,3
+*GET, L3_length, LINE, 3, LENGTH
+L3_semisurf = semiper_thin*L3_length ! half surface area of the line (mm^2)
+W1_half_press = W1_half/L3_semisurf ! Pressure on the lines (N/mm^2 or MPa)
+ESLL, S
+SFBEAM, ALL, 1, PRES, W1_half_press
+
+LSEL, S, LINE,,13
+*GET, L13_length, LINE, 13, LENGTH
+L13_semisurf = semiper_thin*L13_length ! half surface area of the line (mm^2)
+W1_half_press = W1_half/L13_semisurf ! Pressure on the lines (N/mm^2 or MPa)
+ESLL, S
+SFBEAM, ALL, 1, PRES, W1_half_press
+
+ALLSEL,ALL
+
+! Front seat
+W2_half = W2/2
+*GET, L9_length, LINE, 9, LENGTH
+LSEL, S, LINE,,9
+L9_semisurf = semiper_thin*L9_length ! half surface area of the line (mm^2)
+W2_half_press = W2_half/L9_semisurf ! Pressure on the lines (N/mm^2 or MPa)
+ESLL, S
+SFBEAM, ALL, 1, PRES, -W2_half_press
+
+*GET, L19_length, LINE, 19, LENGTH
+LSEL, S, LINE,,19
+L19_semisurf = semiper_thin*L19_length ! half surface area of the line (mm^2)
+W2_half_press = W2_half/L19_semisurf ! Pressure on the lines (N/mm^2 or MPa)
+ESLL, S
+SFBEAM, ALL, 1, PRES, -W2_half_press
+
+ALLSEL,ALL
+
+! Back seat
+W3_half = W3/2
+*GET, L10_length, LINE, 10, LENGTH
+LSEL, S, LINE,,10
+L10_semisurf = semiper_thin*L10_length ! half surface area of the line (mm^2)
+W3_half_press = W3_half/L10_semisurf ! Pressure on the lines (N/mm^2 or MPa)
+ESLL, S
+SFBEAM, ALL, 1, PRES, -W3_half_press
+
+*GET, L20_length, LINE, 20, LENGTH
+LSEL, S, LINE,,20
+L20_semisurf = semiper_thin*L20_length ! half surface area of the line (mm^2)
+W3_half_press = W3_half/L20_semisurf ! Pressure on the lines (N/mm^2 or MPa)
+ESLL, S
+SFBEAM, ALL, 1, PRES, -W3_half_press
+
+ALLSEL, ALL
+
+
+! Battery
+Wbatt_half = Wbatt/2
+*GET, L4_length, LINE, 4, LENGTH
+LSEL, S, LINE,,4
+L4_semisurf = semiper_thin*L4_length ! half surface area of the line (mm^2)
+Wbatt_half_press = Wbatt_half/L4_semisurf ! Pressure on the lines (N/mm^2 or MPa)
+ESLL, S
+SFBEAM, ALL, 1, PRES, Wbatt_half_press
+
+*GET, L14_length, LINE, 14, LENGTH
+LSEL, S, LINE,,14
+L14_semisurf = semiper_thin*L14_length ! half surface area of the line (mm^2)
+Wbatt_half_press = Wbatt_half/L14_semisurf ! Pressure on the lines (N/mm^2 or MPa)
+ESLL, S
+SFBEAM, ALL, 1, PRES, Wbatt_half_press
+
+ALLSEL,ALL
+
+ACEL,,9.81	!m/s2
+
+outres,all,all
+Eqslv,pcg
+Solve
+
+FINISH
+/REPLOT
+
+/POST1
+SET,1
+PLDISP,2
