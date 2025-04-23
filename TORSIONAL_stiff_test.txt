@@ -248,11 +248,21 @@ NSLL, S,1
 LOCAL,11,0         
 CSYS,0
 LOCAL,11,0, 664.58, 86.38, 205.0, 67, 0, 0
+NSEL, S, NODE, , max_node_L+1
+CSYS,11
+NROTAT, ALL
+CSYS,0
+ALLSEL, ALL
 
 ! Local RF in RIGHT SIDE center
 LOCAL,12,0
 CSYS,0
 LOCAL,12,0, 664.58, 86.38,-205.0, 67, 0, 0
+NSEL, S, NODE, , max_node_R+1
+CSYS,12
+NROTAT, ALL
+CSYS,0
+ALLSEL, ALL
 
 /ESHAPE,1
 /VIEW, 1, 1, 1, 1
@@ -275,21 +285,21 @@ NSLL, S,1
  D, ALL, ROTY,0
  D, ALL, ROTZ,0
 
-F = 1000 ! N
+F = 4000 ! N
 intx = 0.4 ! m
+intx_mm = 400 ! mm
 T = F*intx ! Nm
 toRad = 3.14159265359/180 ! convert degrees to radians
+toDeg = 180/3.14159265359 ! convert radians to degrees
 ang = 67*toRad
 Fx = F*COS(ang)
 Fy = F*SIN(ang)
 
 NSEL, S, NODE, , max_node_L+1
-F, max_node_L+1, FX, Fx
-F, max_node_L+1, FY, Fy
+F, max_node_L+1, FX, F
 
 NSEL, S, NODE, , max_node_R+1
-F, max_node_R+1, FX, -Fx
-F, max_node_R+1, FY, -Fy
+F, max_node_R+1, FX, -F
 
 ALLSEL,ALL
 
@@ -303,3 +313,26 @@ FINISH
 /POST1
 SET,1
 PLDISP,2
+
+! get displacement values (global reference system)
+*GET, ux_L, NODE, max_node_L+1, U, X
+*GET, uy_L, NODE, max_node_L+1, U, Y
+*GET, uz_L, NODE, max_node_L+1, U, Z
+
+*GET, ux_R, NODE, max_node_R+1, U, X
+*GET, uy_R, NODE, max_node_R+1, U, Y
+*GET, uz_R, NODE, max_node_R+1, U, Z
+
+! get to local ref frame (CSYS 11 and 12)
+ROTZ = 67 ! deg
+COSR = COS(ROTZ*toRad)
+SINR = SIN(ROTZ*toRad)
+ux_L_local = ux_L*COSR + uy_L*SINR
+uy_L_local = -ux_L*SINR + uy_L*COSR
+uz_L_local = uz_L
+ux_R_local = ux_R*COSR + uy_R*SINR
+uy_R_local = -ux_R*SINR + uy_R*COSR
+uz_R_local = uz_R
+! get angle around the rotation axis
+ang_L = ATAN2(ux_L_local, intx_mm*0.5 - uz_L_local)*toDeg
+ang_R = ATAN2(ux_R_local, intx_mm*0.5 - uz_R_local)*toDeg
