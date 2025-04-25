@@ -1,7 +1,9 @@
 FINISH
 /CLEAR, START, NEW  ! Clear previous data and start a new session
 
+! --------------------------------------------
 ! >>>>>> INPUT PARAMETERS <<<<<
+! --------------------------------------------
 
 !element thin tube
 R_in_thin = 15.05	!inner radius
@@ -21,8 +23,10 @@ E_length_straight = 10	! element length (straight part)
 E_length_arc = 1
 Eps = 1E-4	! selection tolerance
 
-
+! --------------------------------------------
 ! >>>>> PREPROCESSOR <<<<<
+! --------------------------------------------
+
 /PREP7 
 
 ET, 1, BEAM189  
@@ -205,10 +209,12 @@ LSEL, A, LINE,,20
 LATT,1,,1,,19,,2
 LSEL, ALL, ALL
 
+! MESHING
 LMESH,ALL
 NUMMRG,NODE,0.01
 
-! Define the center of the swingarm pivot LEFT SIDE (Master nodes)
+! MPC184 ELEMENTS CREATION
+! Define bearing position of the swingarm LEFT SIDE (Master nodes)
 *GET, max_node_L, NODE, 0, NUM, MAXD
 N, max_node_L+1, 664.58, 86.38, 205.0
 
@@ -226,10 +232,9 @@ NSLL, S,1
     E,max_node_L+1,n_node
     NSEL, U, NODE, , n_node
 *ENDDO
-
 ALLSEL, ALL
 
-! Define the center of the swingarm pivot RIGHT SIDE (Master nodes)
+! Define bearing position of the swingarm RIGHT SIDE (Master nodes)
 *GET, max_node_R, NODE, 0, NUM, MAXD
 N, max_node_R+1, 664.58, 86.38, -205.0
 ! Select nodes for the right side (Slave nodes)
@@ -243,8 +248,15 @@ NSLL, S,1
     E,max_node_R+1,n_node
     NSEL, U, NODE, , n_node
 *ENDDO
+ALLSEL, ALL
 
-! Local RF in LEFT SIDE center
+! Create swingarm pivot with MPC184
+*GET, max_node_C, NODE, 0, NUM, MAX 
+N, max_node_C+1, 664.58, 86.38, 0.0 ! center of the swingarm pivot
+E, max_node_C+1, max_node_L+1
+E, max_node_C+1, max_node_R+1
+
+! Local RF in LEFT SIDE side of pivot
 LOCAL,11,0         
 CSYS,0
 LOCAL,11,0, 664.58, 86.38, 205.0, 67, 0, 0
@@ -253,13 +265,21 @@ CSYS,11
 NROTAT, ALL
 CSYS,0
 ALLSEL, ALL
-
-! Local RF in RIGHT SIDE center
+! Local RF in RIGHT SIDE of pivot
 LOCAL,12,0
 CSYS,0
 LOCAL,12,0, 664.58, 86.38,-205.0, 67, 0, 0
 NSEL, S, NODE, , max_node_R+1
 CSYS,12
+NROTAT, ALL
+CSYS,0
+ALLSEL, ALL
+! Local RF in CENTRAL position
+LOCAL,13,0
+CSYS,0
+LOCAL,13,0, 664.58, 86.38, 0.0, 67, 0, 0
+NSEL, S, NODE, , max_node_C+1
+CSYS,13
 NROTAT, ALL
 CSYS,0
 ALLSEL, ALL
@@ -278,9 +298,12 @@ ALLSEL, ALL
 EPLOT
 FINISH  
 
+! --------------------------------------------
 ! >>>>> SOLUTION <<<<<
+! --------------------------------------------
+
 /SOLUTION
-ANTYPE, STATIC, NEW   !static solution
+ANTYPE, STATIC, NEW   ! static solution
 
 ! Steering head constraint (KP 35 and 36)
 NSEL, S, NODE, , node1
@@ -293,36 +316,37 @@ NSEL, A, NODE, , node2
  D, ALL, ROTZ,0
 ALLSEL, ALL
 
+! Parameters
 F = 5000 ! N
-intx = 0.4 ! m
+intx_m = 0.4 ! m
 intx_mm = 400 ! mm
-Torque = F*intx ! Nm
+Torque_Nmm = F*intx_mm ! Nmm
+Torque_Nm = F*intx_m ! Nm
 toRad = 3.14159265359/180 ! convert degrees to radians
 toDeg = 180/3.14159265359 ! convert radians to degrees
 ang = 67*toRad ! rotated reference system angle (rotz)
-Fx = F*COS(ang)
-Fy = F*SIN(ang)
 
-! Apply torque load
-NSEL, S, NODE, , max_node_L+1
-    F, max_node_L+1, FX, F
-NSEL, S, NODE, , max_node_R+1
-    F, max_node_R+1, FX, -F
+! Apply torque load to swingarm pivot (local ref frame 13)
+NSEL, S, NODE, , max_node_C+1
+    F, max_node_C+1, MY, Torque_Nmm
 ALLSEL,ALL
 
-outres,all,all
-Eqslv,pcg
-Solve
+OUTRES, ALL, ALL
+EQSLV, PCG
+SOLVE
 
 FINISH
 /REPLOT
 
+! --------------------------------------------
 ! >>>>> POSTPROCESSING <<<<<
+! --------------------------------------------
+
 /POST1
 SET,1
 PLDISP,2
 
-! get displacement values (global reference system)
+! Get displacement values (global reference system) of the pivot bearings
 *GET, ux_L, NODE, max_node_L+1, U, X
 *GET, uy_L, NODE, max_node_L+1, U, Y
 *GET, uz_L, NODE, max_node_L+1, U, Z
@@ -333,7 +357,8 @@ utot_L = SQRT(ux_L**2 + uy_L**2 + uz_L**2)
 *GET, uz_R, NODE, max_node_R+1, U, Z
 utot_R = SQRT(ux_R**2 + uy_R**2 + uz_R**2)
 
-! get to local ref frame (CSYS 11 (L) and 12 (R))
+! Project displacements into local ref frame (CSYS 11 (L) and 12 (R))
+! rotation matrix
 ROTZ = 67 ! deg
 COSR = COS(ROTZ*toRad)
 SINR = SIN(ROTZ*toRad)
@@ -343,8 +368,9 @@ uz_L_local = uz_L
 ux_R_local = ux_R*COSR + uy_R*SINR
 uy_R_local = -ux_R*SINR + uy_R*COSR
 uz_R_local = uz_R
-! get angle around the rotation axis
+! Get angle around the rotation axis
 ang_L = ATAN2(ux_L_local, intx_mm*0.5 - uz_L_local)*toDeg ! deg
 ang_R = ATAN2(ux_R_local, intx_mm*0.5 - uz_R_local)*toDeg ! deg
 
-Kt_deg = Torque/ang_L ! Nm/deg
+Kt_Nmm_deg = Torque_Nmm/ang_L ! Nmm/deg
+Kt_Nm_deg  = Torque_Nm/ang_L  ! Nm/deg
