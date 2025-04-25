@@ -264,15 +264,6 @@ NROTAT, ALL
 CSYS,0
 ALLSEL, ALL
 
-! MPC184 elements for the steering head (KP 35 and 36)
-KSEL, S, KP, , 35
-KSEL, A, KP, , 36
-NSLK, S
-*GET, node1, NODE, 0, NUM, MIN
-*GET, node2, NODE, 0, NUM, MAX
-E, node1, node2
-ALLSEL, ALL
-
 /ESHAPE,1
 /VIEW, 1, 1, 1, 1
 EPLOT
@@ -282,69 +273,94 @@ FINISH
 /SOLUTION
 ANTYPE, STATIC, NEW   !static solution
 
-! Steering head constraint (KP 35 and 36)
-NSEL, S, NODE, , node1
-NSEL, A, NODE, , node2
+! Steering head constraint
+LSEL, S, LINE,,30
+LSEL, A, LINE,,31
+NSLL, S,1
+
  D, ALL, UX,0
  D, ALL, UY,0
  D, ALL, UZ,0
  D, ALL, ROTX,0
  D, ALL, ROTY,0
  D, ALL, ROTZ,0
-ALLSEL, ALL
 
-F = 5000 ! N
-intx = 0.4 ! m
-intx_mm = 400 ! mm
-Torque = F*intx ! Nm
 toRad = 3.14159265359/180 ! convert degrees to radians
 toDeg = 180/3.14159265359 ! convert radians to degrees
-ang = 67*toRad ! rotated reference system angle (rotz)
-Fx = F*COS(ang)
-Fy = F*SIN(ang)
+ang = 67*toRad
 
-! Apply torque load
-NSEL, S, NODE, , max_node_L+1
-    F, max_node_L+1, FX, F
-NSEL, S, NODE, , max_node_R+1
-    F, max_node_R+1, FX, -F
-ALLSEL,ALL
+! TORSIONAL STIFFNESS CHARACTERIZATION
+! vectors
+*DIM, forces, ARRAY, 5
+*DIM, angles, ARRAY, 5
+*DIM, Kt, ARRAY, 5
 
-outres,all,all
-Eqslv,pcg
-Solve
+forces(1) = 1000 ! N
+forces(2) = 2000 ! N
+forces(3) = 3000 ! N
+forces(4) = 4000 ! N
+forces(5) = 5000 ! N
 
-FINISH
-/REPLOT
+toRad = 3.14159265359/180
+toDeg = 180/3.14159265359
+ang = 67*toRad
+intx_mm = 400       ! mm
+intx = intx_mm/1000 ! m
 
-! >>>>> POSTPROCESSING <<<<<
-/POST1
-SET,1
-PLDISP,2
+*DO, i, 1, 5
+  /SOLUTION ! >>>>> SOLUTION <<<<<
+  F = forces(i)   ! N
+  Torque = F*intx ! Nm
+  Fx = F*COS(ang)
+  Fy = F*SIN(ang)
+  ! apply torque
+  NSEL, S, NODE, , max_node_L+1
+  F, max_node_L+1, FX, Fx
+  NSEL, S, NODE, , max_node_R+1
+  F, max_node_R+1, FX, -Fx
+  ALLSEL,ALL
 
-! get displacement values (global reference system)
-*GET, ux_L, NODE, max_node_L+1, U, X
-*GET, uy_L, NODE, max_node_L+1, U, Y
-*GET, uz_L, NODE, max_node_L+1, U, Z
-utot_L = SQRT(ux_L**2 + uy_L**2 + uz_L**2)
+  outres,all,all
+  Eqslv,pcg
+  SOLVE
 
-*GET, ux_R, NODE, max_node_R+1, U, X
-*GET, uy_R, NODE, max_node_R+1, U, Y
-*GET, uz_R, NODE, max_node_R+1, U, Z
-utot_R = SQRT(ux_R**2 + uy_R**2 + uz_R**2)
+  ! >>>>>> POSTPROCESSING <<<<<
+  /POST1
+  SET, 1
+  ! get displacement values (global reference system)
+  *GET, ux_L, NODE, max_node_L+1, U, X
+  *GET, uy_L, NODE, max_node_L+1, U, Y
+  *GET, uz_L, NODE, max_node_L+1, U, Z
+  utot_L = SQRT(ux_L**2 + uy_L**2 + uz_L**2)
 
-! get to local ref frame (CSYS 11 (L) and 12 (R))
-ROTZ = 67 ! deg
-COSR = COS(ROTZ*toRad)
-SINR = SIN(ROTZ*toRad)
-ux_L_local = ux_L*COSR + uy_L*SINR
-uy_L_local = -ux_L*SINR + uy_L*COSR
-uz_L_local = uz_L
-ux_R_local = ux_R*COSR + uy_R*SINR
-uy_R_local = -ux_R*SINR + uy_R*COSR
-uz_R_local = uz_R
-! get angle around the rotation axis
-ang_L = ATAN2(ux_L_local, intx_mm*0.5 - uz_L_local)*toDeg ! deg
-ang_R = ATAN2(ux_R_local, intx_mm*0.5 - uz_R_local)*toDeg ! deg
+  *GET, ux_R, NODE, max_node_R+1, U, X
+  *GET, uy_R, NODE, max_node_R+1, U, Y
+  *GET, uz_R, NODE, max_node_R+1, U, Z
+  utot_R = SQRT(ux_R**2 + uy_R**2 + uz_R**2)
+  ! get to local ref frame (CSYS 11 (L) and 12 (R))
+  ROTZ = 67 ! deg
+  COSR = COS(ROTZ*toRad)
+  SINR = SIN(ROTZ*toRad)
+  ux_L_local = ux_L*COSR + uy_L*SINR
+  uy_L_local = -ux_L*SINR + uy_L*COSR
+  uz_L_local = uz_L
+  ux_R_local = ux_R*COSR + uy_R*SINR
+  uy_R_local = -ux_R*SINR + uy_R*COSR
+  uz_R_local = uz_R
+  ! get angle around the rotation axis
+  ang_L = ATAN2(ux_L_local, intx_mm*0.5 - uz_L_local)*toDeg ! deg
+  ang_R = ATAN2(ux_R_local, intx_mm*0.5 - uz_R_local)*toDeg ! deg
 
-Kt_deg = Torque/ang_L ! Nm/deg
+  angles(i) = ang_L ! deg
+  Kt(i) = Torque/ang_L ! Nm/deg
+  /REPLOT
+  PLDISP,2
+
+*ENDDO
+
+*CFOPEN, output_vectors, txt
+*DO, ii, 1, 5
+    *VWRITE, Kt(ii)
+    (F10.4)
+*ENDDO
+*CFCLOS
