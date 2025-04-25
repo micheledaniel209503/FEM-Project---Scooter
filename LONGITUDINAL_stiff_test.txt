@@ -260,7 +260,7 @@ E, max_node_C+1, max_node_R+1
 LOCAL,11,0         
 CSYS,0
 LOCAL,11,0, 664.58, 86.38, 205.0, 67, 0, 0
-NSEL, S, NODE, , max_node_L+1
+NSEL, S, NODE, , max_node_L+1 ! rotate nodal ref frame
 CSYS,11
 NROTAT, ALL
 CSYS,0
@@ -269,16 +269,16 @@ ALLSEL, ALL
 LOCAL,12,0
 CSYS,0
 LOCAL,12,0, 664.58, 86.38,-205.0, 67, 0, 0
-NSEL, S, NODE, , max_node_R+1
+NSEL, S, NODE, , max_node_R+1 ! rotate nodal ref frame
 CSYS,12
 NROTAT, ALL
 CSYS,0
 ALLSEL, ALL
-! Local RF in CENTRAL position
+! Local RF in CENTRAL position of pivot
 LOCAL,13,0
 CSYS,0
 LOCAL,13,0, 664.58, 86.38, 0.0, 67, 0, 0
-NSEL, S, NODE, , max_node_C+1
+NSEL, S, NODE, , max_node_C+1 ! rotate nodal ref frame
 CSYS,13
 NROTAT, ALL
 CSYS,0
@@ -288,9 +288,22 @@ ALLSEL, ALL
 KSEL, S, KP, , 35
 KSEL, A, KP, , 36
 NSLK, S
-*GET, node1, NODE, 0, NUM, MIN
-*GET, node2, NODE, 0, NUM, MAX
-E, node1, node2
+*GET, node_UP, NODE, 0, NUM, MIN
+*GET, node_DOWN, NODE, 0, NUM, MAX
+E, node_UP, node_DOWN
+ALLSEL, ALL
+*GET, node_FRONT, NODE, 0, NUM, MAX
+N, node_FRONT+1, -183.9, 446.54, 0.0 ! point of application of the load
+E, node_FRONT+1, node_DOWN
+
+! Local RF on the STEERING HEAD axis (longitudinal load)
+LOCAL,14,0
+CSYS,0
+LOCAL,14,0, -183.9, 446.54, 0.0, -23, 0, 0
+NSEL, S, NODE, , node_FRONT+1 ! rotate nodal ref frame
+CSYS,14
+NROTAT, ALL
+CSYS,0
 ALLSEL, ALL
 
 /ESHAPE,1
@@ -305,31 +318,25 @@ FINISH
 /SOLUTION
 ANTYPE, STATIC, NEW   ! static solution
 
-! Steering head constraint (KP 35 and 36)
-NSEL, S, NODE, , node1
-NSEL, A, NODE, , node2
- D, ALL, UX,0
- D, ALL, UY,0
- D, ALL, UZ,0
- D, ALL, ROTX,0
- D, ALL, ROTY,0
- D, ALL, ROTZ,0
+! Swingarm bearings constraints (KP 35 and 36)
+NSEL, S, NODE, , max_node_L+1
+NSEL, A, NODE, , max_node_R+1
+D, ALL, ALL
 ALLSEL, ALL
 
 ! Parameters
-F = 5000 ! N
+F = 3000 ! N
 intx_m = 0.4 ! m
 intx_mm = 400 ! mm
 Torque_Nmm = F*intx_mm ! Nmm
 Torque_Nm = F*intx_m ! Nm
 toRad = 3.14159265359/180 ! convert degrees to radians
 toDeg = 180/3.14159265359 ! convert radians to degrees
-ang = 67*toRad ! rotated reference system angle (rotz)
 
-! Apply torque load to swingarm pivot (local ref frame 13)
-NSEL, S, NODE, , max_node_C+1
-    F, max_node_C+1, MY, Torque_Nmm
-ALLSEL,ALL
+! Apply longitudinal load to steering head axis (local ref frame xx)
+NSEL, S, NODE, , node_FRONT+1
+F, node_FRONT+1, FX, F ! N
+ALLSEL, ALL
 
 OUTRES, ALL, ALL
 EQSLV, PCG
@@ -346,32 +353,12 @@ FINISH
 SET,1
 PLDISP,2
 
-! Get displacement values (global reference system) of the pivot bearings
-*GET, ux_L, NODE, max_node_L+1, U, X
-*GET, uy_L, NODE, max_node_L+1, U, Y
-*GET, uz_L, NODE, max_node_L+1, U, Z
-utot_L = SQRT(ux_L**2 + uy_L**2 + uz_L**2)
+! Get displacement values (global reference system) of the pivot center
+*GET, ux_FRONT, NODE, node_FRONT+1, U, X
+*GET, uy_FRONT, NODE, node_FRONT+1, U, Y
+*GET, uz_FRONT, NODE, node_FRONT+1, U, Z
+utot_FRONT = SQRT(ux_FRONT**2 + uy_FRONT**2 + uz_FRONT**2)
 
-*GET, ux_R, NODE, max_node_R+1, U, X
-*GET, uy_R, NODE, max_node_R+1, U, Y
-*GET, uz_R, NODE, max_node_R+1, U, Z
-utot_R = SQRT(ux_R**2 + uy_R**2 + uz_R**2)
-
-! Project displacements into local ref frame (CSYS 11 (L) and 12 (R))
-! rotation matrix
-ROTZ = 67 ! deg
-COSR = COS(ROTZ*toRad)
-SINR = SIN(ROTZ*toRad)
-ux_L_local = ux_L*COSR + uy_L*SINR
-uy_L_local = -ux_L*SINR + uy_L*COSR
-uz_L_local = uz_L
-ux_R_local = ux_R*COSR + uy_R*SINR
-uy_R_local = -ux_R*SINR + uy_R*COSR
-uz_R_local = uz_R
-! Get angle around the rotation axis
-ang_L = ATAN2(ux_L_local, intx_mm*0.5 - uz_L_local)*toDeg ! deg
-ang_R = ATAN2(ux_R_local, intx_mm*0.5 - uz_R_local)*toDeg ! deg
-
-Kt_Nmm_deg = Torque_Nmm/ang_L ! Nmm/deg
-Kt_Nm_deg  = Torque_Nm/ang_L  ! Nm/deg
-Kt_kNm_deg = (Torque_Nm / ang_L) / 1000  ! kNm/deg
+Klong_N_mm = F/utot_FRONT       ! N/mm
+Klong_N_m = (F/utot_FRONT)*1000 ! N/m
+Klong_kN_mm = (F / utot_FRONT) / 1000 ! kN/mm
