@@ -325,7 +325,7 @@ D, ALL, ALL
 ALLSEL, ALL
 
 ! Parameters
-F = 1000 ! N
+F = 500 ! N
 intx_m = 0.4 ! m
 intx_mm = 400 ! mm
 Torque_Nmm = F*intx_mm ! Nmm
