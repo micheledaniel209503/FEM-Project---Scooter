@@ -293,18 +293,8 @@ NSLK, S
 E, node_UP, node_DOWN
 ALLSEL, ALL
 *GET, node_FRONT, NODE, 0, NUM, MAX
-N, node_FRONT+1, -183.9, 446.54, 0.0 ! point of application of the load
+N, node_FRONT+1, -373.4, 0.0, 0.0 ! point of application of the load
 E, node_FRONT+1, node_DOWN
-
-! Local RF on the STEERING HEAD axis (longitudinal load)
-LOCAL,14,0
-CSYS,0
-LOCAL,14,0, -183.9, 446.54, 0.0, -23, 0, 0
-NSEL, S, NODE, , node_FRONT+1 ! rotate nodal ref frame
-CSYS,14
-NROTAT, ALL
-CSYS,0
-ALLSEL, ALL
 
 /ESHAPE,1
 /VIEW, 1, 1, 1, 1
@@ -325,7 +315,7 @@ D, ALL, ALL
 ALLSEL, ALL
 
 ! Parameters
-F = 3000 ! N
+F = 1000 ! N
 intx_m = 0.4 ! m
 intx_mm = 400 ! mm
 Torque_Nmm = F*intx_mm ! Nmm
@@ -355,9 +345,10 @@ PLDISP,2
 
 ! Get displacement values (global reference system) of the pivot center
 *GET, ux_FRONT, NODE, node_FRONT+1, U, X
-*GET, uy_FRONT, NODE, node_FRONT+1, U, Y
-*GET, uz_FRONT, NODE, node_FRONT+1, U, Z
-utot_FRONT = SQRT(ux_FRONT**2 + uy_FRONT**2 + uz_FRONT**2)
+!*GET, uy_FRONT, NODE, node_FRONT+1, U, Y
+!*GET, uz_FRONT, NODE, node_FRONT+1, U, Z
+!utot_FRONT = SQRT(ux_FRONT**2 + uy_FRONT**2 + uz_FRONT**2)
+utot_FRONT = ux_FRONT
 
 Klong_N_mm = F/utot_FRONT       ! N/mm
 Klong_N_m = (F/utot_FRONT)*1000 ! N/m
