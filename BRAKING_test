@@ -256,32 +256,53 @@ N, max_node_C+1, 664.58, 86.38, 0.0 ! center of the swingarm pivot
 E, max_node_C+1, max_node_L+1
 E, max_node_C+1, max_node_R+1
 
-! Local RF in LEFT SIDE side of pivot
+ALLSEL, ALL
+
+! Define the center of the rear suspension pivot LEFT SIDE (Master nodes)
+*GET, max_node_L_SA, NODE, 0, NUM, MAXD
+N, max_node_L_SA+1, 1101.3, 433.5, 200
+!N,3866,1101.3,433.5,-200
+! MPC184 element
+ET,2,184
+KEYOPT,2,1,1
+TYPE,2
+! Define a local RF. positioned at K23 and oriented as the beam
 LOCAL,11,0         
 CSYS,0
-LOCAL,11,0, 664.58, 86.38, 205.0, 67, 0, 0
-NSEL, S, NODE, , max_node_L+1 ! rotate nodal ref frame
+LOCAL,11,0, 1105.7,491.0,200,18.0
 CSYS,11
-NROTAT, ALL
+! Select the nodes that lies in the interval +35, -35 mm from the RF
+NSEL, S, LOC, Z, 0.0 - Eps, 0.0 + Eps
+NSEL, R, LOC, Y, 0.0 - 1, 0.0 + 1
+NSEL, R, LOC, X, 0.0 - 35, 0.0 + 35
 CSYS,0
+*GET, num_nodes, NODE, 0, COUNT
+*DO, ii, 1, num_nodes,1
+    *GET, n_node, NODE, 0, NUM, MAX
+    E,max_node_L_SA+1,n_node
+    NSEL, U, NODE, , n_node
+*ENDDO
 ALLSEL, ALL
-! Local RF in RIGHT SIDE of pivot
-LOCAL,12,0
+
+! Define the center of the rear suspension pivot RIGHT SIDE (Master nodes)
+*GET, max_node_R_SA, NODE, 0, NUM, MAXD
+N,max_node_R_SA+1,1101.3,433.5,-200
+! Define a local RF. positioned at K23 and oriented as the beam
+LOCAL,12,0         
 CSYS,0
-LOCAL,12,0, 664.58, 86.38,-205.0, 67, 0, 0
-NSEL, S, NODE, , max_node_R+1 ! rotate nodal ref frame
+LOCAL,12,0, 1105.7,491.0,-200,18.0
 CSYS,12
-NROTAT, ALL
+! Select the nodes that lies in the interval +35, -35 mm from the RF
+NSEL, S, LOC, Z, 0.0 - Eps, 0.0 + Eps
+NSEL, R, LOC, Y, 0.0 - 1, 0.0 + 1
+NSEL, R, LOC, X, 0.0 - 35, 0.0 + 35
 CSYS,0
-ALLSEL, ALL
-! Local RF in CENTRAL position of pivot
-LOCAL,13,0
-CSYS,0
-LOCAL,13,0, 664.58, 86.38, 0.0, 67, 0, 0
-NSEL, S, NODE, , max_node_C+1 ! rotate nodal ref frame
-CSYS,13
-NROTAT, ALL
-CSYS,0
+*GET, num_nodes, NODE, 0, COUNT
+*DO, ii, 1, num_nodes,1
+    *GET, n_node, NODE, 0, NUM, MAX
+    E,max_node_R_SA+1,n_node
+    NSEL, U, NODE, , n_node
+*ENDDO
 ALLSEL, ALL
 
 ! MPC184 elements for the steering head (KP 35 and 36)
@@ -293,23 +314,42 @@ NSLK, S
 E, node_UP, node_DOWN
 ALLSEL, ALL
 
-! Point of force application
-CSYS,13
-*GET, max_node_Force, NODE, 0, NUM, MAX 
-N, max_node_Force+1, 140.0, 0.0, 0.0
+! Define the front wheel pivot (Master nodes)
+*GET, max_node_F, NODE, 0, NUM, MAXD
+N, max_node_F+1, -373.4, 0, 0
+NSEL, S, NODE, , max_node_F+1
+NSEL, A, NODE, , node_DOWN
+E, max_node_F+1, node_DOWN
+
 CSYS,0
 ALLSEL, ALL
 
-! MPC184 elements for the force application point
-NSEL, S, NODE, , max_node_Force+1
-NSEL, A, NODE, , max_node_C+1
-E, max_node_Force+1, max_node_C+1
+! Define the front wheel contact point
+*GET, max_node_G, NODE, 0, NUM, MAXD
+N, max_node_G+1, -373.4, -240.0, 0
+
+! MPC184 elements for the front wheel contact point
+NSEL, S, NODE, , max_node_G+1
+NSEL, A, NODE, , max_node_F+1
+E, max_node_G+1, max_node_F+1
+
+ALLSEL, ALL
+
+! Define the handlebar position
+*GET, max_node_H, NODE, 0, NUM, MAXD
+N, max_node_H+1, 3.960, 889.1, 0
+! MPC184 elements for the handlebar
+NSEL, S, NODE, , max_node_H+1
+NSEL, A, NODE, , node_UP
+E, max_node_H+1, node_UP
+
 ALLSEL, ALL
 
 /ESHAPE,1
 /VIEW, 1, 1, 1, 1
 EPLOT
 FINISH  
+
 
 ! --------------------------------------------
 ! >>>>> SOLUTION <<<<<
@@ -320,27 +360,122 @@ NSUBST,10,100,2
 NROPT, FULL, , OFF
 NLGEOM, ON
 AUTOTS, ON
-ANTYPE, STATIC, NEW   ! static solution
+ANTYPE, STATIC, NEW   !static solution
 
-! Steering head constraint (KP 35 and 36)
-NSEL, S, NODE, , node_UP
-NSEL, A, NODE, , node_DOWN
-D, ALL, ALL
+! >>>>> CONSTRAINT DEFINITION <<<<<<
+
+! Constrain the front wheel's contact point (flip-over limit)
+NSEL, S, NODE, , max_node_G+1
+ D, ALL, UX, 0
+ D, ALL, UY, 0
+ D, ALL, UZ, 0
+ D, ALL, ROTX,0
+ D, ALL, ROTY,0
+ D, ALL, ROTZ,0
 ALLSEL, ALL
+
+! >>>>>> LOAD DEFINITION <<<<<
 
 ! Parameters
-F = 1000 ! N
-intx_m = 0.4 ! m
-intx_mm = 400 ! mm
-Torque_Nmm = F*intx_mm ! Nmm
-Torque_Nm = F*intx_m ! Nm
-toRad = 3.14159265359/180 ! convert degrees to radians
-toDeg = 180/3.14159265359 ! convert radians to degrees
+g = 9.81 ! m/s^2
+m_r = 80 ! kg rider's mass 
+m = 120 ! kg scooter's mass
+M = 200 ! kg total mass
+m_batteries = 21 ! kg batteries' mass
+m_engine = 30 ! kg engine's mass
+a_x = 2.1*g ! m/s^2 acceleration
 
-! Apply lateral load to swingarm center
-NSEL, S, NODE, , max_node_Force+1
-F, max_node_Force+1, FZ, F ! N
+! Rider's weight and inertia forces
+W_1 = 480 ! N rider's weigh on cradle
+W_2 = 320 ! N rider's weigh on front seat
+F_rider = m_r*a_x ! N rider's inertia force
+F_man = 0.9*F_rider ! N rider's inertia force on handlebar
+F_ped = 0.1*F_rider ! N rider's inertia force on cradle
+
+! Scooter's weight and inertia forces
+W_batteries = m_batteries*g ! N batteries' weight
+F_batteries = m_batteries*a_x ! N batteries' inertia force
+W_engine = m_engine*g ! N engine's weight
+F_engine = m_engine*a_x ! N engine's inertia force
+W_structure = (M - m_batteries - m_engine)*g ! N structure's weight
+F_structure = (M - m_batteries - m_engine)*a_x ! N structure's inertia force
+
+! Apply rider's inertia force on handlebar
+NSEL, S, NODE, , max_node_H+1
+ F, max_node_H+1, FX, -F_man
 ALLSEL, ALL
+
+! Apply rider's inertia force on cradle (distributed load)
+*SET, F_ped_half, F_ped*0.5
+LSEL, S, LINE,,3 ! Left side line 3 
+*GET, L3_length, LINE, 3, LENGTH
+*SET, f_ped_half_press, F_ped_half/L3_length ! Pressure on the line (N/mm)
+ESLL, S
+SFBEAM, ALL, 3, PRES, -f_ped_half_press
+LSEL, S, LINE,,13  ! Right side line 13
+ESLL, S
+SFBEAM, ALL, 3, PRES, -f_ped_half_press
+ALLSEL, ALL
+
+! Apply rider's weight on cradle (distributed load)
+*SET, W_1_half, W_1*0.5
+LSEL, S, LINE,,3 ! Left side line 3
+*SET, w_1_half_press, W_1_half/L3_length
+ESLL, S
+SFBEAM, ALL, 1, PRES, w_1_half_press
+LSEL, S, LINE,,13  ! Right side line 13
+ESLL, S
+SFBEAM, ALL, 1, PRES, w_1_half_press
+ALLSEL, ALL
+
+! Apply rider's weight on front seat (distributed load)
+*SET, W_2_half, W_2*0.5
+*GET, L9_length, LINE, 9, LENGTH
+LSEL, S, LINE,,9 ! Left side line 9
+*SET, w_2_half_press, W_2_half/L9_length ! Pressure on the line (N/mm)
+ESLL, S
+SFBEAM, ALL, 1, PRES, -w_2_half_press
+LSEL, S, LINE,,19  ! Right side line 19
+ESLL, S
+SFBEAM, ALL, 1, PRES, -w_2_half_press
+ALLSEL, ALL
+
+! Apply batteries' weight and inertia on the cradle (distributed load)
+*SET, W_batteries_half, W_batteries*0.5
+*SET, F_batteries_half, F_batteries*0.5
+LSEL, S, LINE,,4 ! Left side line 4
+*GET, L4_length, LINE, 4, LENGTH
+*SET, w_batteries_half_press, W_batteries_half/L4_length ! Pressure on the line (N/mm)
+*SET, f_batteries_half_press, F_batteries_half/L4_length ! Pressure on the line (N/mm)
+ESLL, S
+SFBEAM, ALL, 1, PRES, w_batteries_half_press
+SFBEAM, ALL, 3, PRES, -f_batteries_half_press
+LSEL, S, LINE,,14  ! Right side line 14
+ESLL, S
+SFBEAM, ALL, 1, PRES, w_batteries_half_press
+SFBEAM, ALL, 3, PRES, -f_batteries_half_press
+
+! Apply (half) engine's weight and inertia near the swingarm pivot
+*SET, W_engine_half, W_engine*0.5
+*SET, F_engine_half, F_engine*0.5
+NSEL, S, NODE, , max_node_C+1 ! Center of the swingarm pivot
+F, max_node_C+1, FY, -W_engine_half
+F, max_node_C+1, FX, -F_engine_half
+
+! Apply (half) engine's weight and inertia on the rear shock absorbers mounts
+*SET, W_engine_quarter, W_engine*0.25
+*SET, F_engine_quarter, F_engine*0.25
+NSEL, S, NODE, , max_node_L_SA+1 ! Left side rear shock absorber mount
+F, max_node_L_SA+1, FY, -W_engine_quarter
+F, max_node_L_SA+1, FX, -F_engine_quarter
+NSEL, S, NODE, , max_node_R_SA+1 ! Right side rear shock absorber mount
+F, max_node_R_SA+1, FY, -W_engine_quarter
+F, max_node_R_SA+1, FX, -F_engine_quarter
+ALLSEL, ALL
+
+! Apply horizontal and vertical accelerations to the global reference frame to account for the rest of the scooter's mass
+ACEL, a_x, g, 0
+
 
 OUTRES, ALL, ALL
 EQSLV, PCG
@@ -356,13 +491,3 @@ FINISH
 /POST1
 SET,1
 PLDISP,2
-
-! Get displacement values (global reference system) of the pivot center
-*GET, ux_CENT, NODE, max_node_C+1, U, X
-*GET, uy_CENT, NODE, max_node_C+1, U, Y
-*GET, uz_CENT, NODE, max_node_C+1, U, Z
-utot_CENT = SQRT(ux_CENT**2 + uy_CENT**2 + uz_CENT**2)
-
-Klat_N_mm = F/uz_CENT      ! N/mm
-Klat_N_m = (F/uz_CENT)*1000 ! N/m
-Klat_kN_mm = (F / uz_CENT) / 1000 ! kN/mm
