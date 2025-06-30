@@ -208,14 +208,55 @@ LSEL, ALL, ALL
 LMESH,ALL
 NUMMRG,NODE,0.01
 
+! MPC184 ELEMENTS CREATION
+! Define bearing position of the swingarm LEFT SIDE (Master nodes)
+*GET, max_node_L, NODE, 0, NUM, MAXD
+N, max_node_L+1, 664.58, 86.38, 205.0
+
+ET,2,184
+KEYOPT,2,1,1
+TYPE,2
+! Select nodes for the left side (Slave nodes)
+LSEL, S, LINE,,5
+LSEL, A, LINE,,6
+NSLL, S,1
+! Create MPC184 elements
+*GET, num_nodes, NODE, 0, COUNT
+*DO, ii, 1, num_nodes,1
+    *GET, n_node, NODE, 0, NUM, MAX
+    E,max_node_L+1,n_node
+    NSEL, U, NODE, , n_node
+*ENDDO
+ALLSEL, ALL
+
+! Define bearing position of the swingarm RIGHT SIDE (Master nodes)
+*GET, max_node_R, NODE, 0, NUM, MAXD
+N, max_node_R+1, 664.58, 86.38, -205.0
+! Select nodes for the right side (Slave nodes)
+LSEL, S, LINE,,15
+LSEL, A, LINE,,16
+NSLL, S,1
+! Create MPC184 elements
+*GET, num_nodes, NODE, 0, COUNT
+*DO, ii, 1, num_nodes,1
+    *GET, n_node, NODE, 0, NUM, MAX
+    E,max_node_R+1,n_node
+    NSEL, U, NODE, , n_node
+*ENDDO
+ALLSEL, ALL
+
+! Create swingarm pivot with MPC184
+*GET, max_node_C, NODE, 0, NUM, MAX 
+N, max_node_C+1, 664.58, 86.38, 0.0 ! center of the swingarm pivot
+E, max_node_C+1, max_node_L+1
+E, max_node_C+1, max_node_R+1
+
+ALLSEL, ALL
+
 ! Define the center of the rear suspension pivot LEFT SIDE (Master nodes)
 *GET, max_node_L, NODE, 0, NUM, MAXD
 N, max_node_L+1, 1101.3, 433.5, 200
 !N,3866,1101.3,433.5,-200
-! MPC184 element
-ET,2,184
-KEYOPT,2,1,1
-TYPE,2
 ! Define a local RF. positioned at K23 and oriented as the beam
 LOCAL,11,0         
 CSYS,0
@@ -297,7 +338,6 @@ ALLSEL, ALL
 ! Constraint on the front wheel pivot  
 NSEL, S, NODE, , max_node_F+1
 D, ALL, UY, 0
-D, ALL, UZ, 0
 ALLSEL, ALL
 
 ! >>>>> LOAD DEFINITION <<<<<
@@ -305,15 +345,21 @@ ALLSEL, ALL
 ! Geometric data
 L1 = 0.600 ! (m) 
 p = 1.4 ! (m)
-semiper_thin = 3.14*R_out_thin ! (mm)
 
 ! External forces data
-g = 10
-Wtot = 180*g ! Total weight (N)
-W1 = Wtot*0.15 ! Weight on the cradle (N)
-W2 = Wtot*0.50 ! Weight on the front seat (N)
-W3 = Wtot*0.35 ! Weight on the back seat
-Wbatt = 45*g ! Battery weight (N)
+g = 9.81 ! (m/s^2) 
+m_r = 75 ! (kg) mass of rider and passenger
+m_p = 50 ! (kg) mass of passenger
+m = 120 ! (kg) mass of the vehicle
+M = m+m_r+m_p ! (kg) Total mass of the vehicle and passengers
+W_r = m_r*g ! (N) Weight of rider
+W_p = m_p*g ! (N) Weight of passenger
+Wtot = M*g ! (N) Total weight
+W1 = W_r*0.5 ! (N) Weight on the cradle (rider)
+W2 = W_r*0.5 ! (N) Weight on the front seat (rider)
+W3 = W_p ! (N) Weight on the back seat (passenger)
+Wbatt = 21*g ! Battery weight (N)
+Weng = 30*g ! Engine weight (N)
 
 ! LOADS
 
@@ -321,17 +367,12 @@ Wbatt = 45*g ! Battery weight (N)
 W1_half = W1/2
 LSEL, S, LINE,,3
 *GET, L3_length, LINE, 3, LENGTH
-L3_semisurf = semiper_thin*L3_length ! half surface area of the line (mm^2)
-W1_half_press = W1_half/L3_semisurf ! Pressure on the lines (N/mm^2 or MPa)
+w1_half_press = W1_half/(L3_length) ! Pressure on the lines (N/mm)
 ESLL, S
-SFBEAM, ALL, 1, PRES, W1_half_press
-
+SFBEAM, ALL, 1, PRES, w1_half_press
 LSEL, S, LINE,,13
-*GET, L13_length, LINE, 13, LENGTH
-L13_semisurf = semiper_thin*L13_length ! half surface area of the line (mm^2)
-W1_half_press = W1_half/L13_semisurf ! Pressure on the lines (N/mm^2 or MPa)
 ESLL, S
-SFBEAM, ALL, 1, PRES, W1_half_press
+SFBEAM, ALL, 1, PRES, w1_half_press
 
 ALLSEL,ALL
 
@@ -339,17 +380,12 @@ ALLSEL,ALL
 W2_half = W2/2
 *GET, L9_length, LINE, 9, LENGTH
 LSEL, S, LINE,,9
-L9_semisurf = semiper_thin*L9_length ! half surface area of the line (mm^2)
-W2_half_press = W2_half/L9_semisurf ! Pressure on the lines (N/mm^2 or MPa)
+w2_half_press = W2_half/L9_length ! Pressure on the lines (N/mm^2 or MPa)
 ESLL, S
-SFBEAM, ALL, 1, PRES, -W2_half_press
-
-*GET, L19_length, LINE, 19, LENGTH
+SFBEAM, ALL, 1, PRES, -w2_half_press
 LSEL, S, LINE,,19
-L19_semisurf = semiper_thin*L19_length ! half surface area of the line (mm^2)
-W2_half_press = W2_half/L19_semisurf ! Pressure on the lines (N/mm^2 or MPa)
 ESLL, S
-SFBEAM, ALL, 1, PRES, -W2_half_press
+SFBEAM, ALL, 1, PRES, -w2_half_press
 
 ALLSEL,ALL
 
@@ -357,38 +393,33 @@ ALLSEL,ALL
 W3_half = W3/2
 *GET, L10_length, LINE, 10, LENGTH
 LSEL, S, LINE,,10
-L10_semisurf = semiper_thin*L10_length ! half surface area of the line (mm^2)
-W3_half_press = W3_half/L10_semisurf ! Pressure on the lines (N/mm^2 or MPa)
+w3_half_press = W3_half/(L10_length+L9_length) ! Pressure on the lines (N/mm^2 or MPa)
 ESLL, S
-SFBEAM, ALL, 1, PRES, -W3_half_press
-
-*GET, L20_length, LINE, 20, LENGTH
+SFBEAM, ALL, 1, PRES, -w3_half_press
 LSEL, S, LINE,,20
-L20_semisurf = semiper_thin*L20_length ! half surface area of the line (mm^2)
-W3_half_press = W3_half/L20_semisurf ! Pressure on the lines (N/mm^2 or MPa)
 ESLL, S
-SFBEAM, ALL, 1, PRES, -W3_half_press
+SFBEAM, ALL, 1, PRES, -w3_half_press
 
 ALLSEL, ALL
 
 
 ! Battery
 Wbatt_half = Wbatt/2
+LSEL, S, LINE,,4 ! Left side line 4
 *GET, L4_length, LINE, 4, LENGTH
-LSEL, S, LINE,,4
-L4_semisurf = semiper_thin*L4_length ! half surface area of the line (mm^2)
-Wbatt_half_press = Wbatt_half/L4_semisurf ! Pressure on the lines (N/mm^2 or MPa)
+w_batt_half_press = Wbatt_half/L4_length ! Pressure on the line (N/mm)
 ESLL, S
-SFBEAM, ALL, 1, PRES, Wbatt_half_press
-
-*GET, L14_length, LINE, 14, LENGTH
-LSEL, S, LINE,,14
-L14_semisurf = semiper_thin*L14_length ! half surface area of the line (mm^2)
-Wbatt_half_press = Wbatt_half/L14_semisurf ! Pressure on the lines (N/mm^2 or MPa)
+SFBEAM, ALL, 1, PRES, w_batteries_half_press
+LSEL, S, LINE,,14  ! Right side line 14
 ESLL, S
-SFBEAM, ALL, 1, PRES, Wbatt_half_press
-
+SFBEAM, ALL, 1, PRES, w_batt_half_press
 ALLSEL,ALL
+
+! Engine
+Weng_half = Weng/2
+NSEL, S, NODE, , max_node_C+1 ! Center of the swingarm pivot
+F, max_node_C+1, FY, -W_engine
+ALLSEL, ALL
 
 ACEL,,9.81	!m/s2
 
