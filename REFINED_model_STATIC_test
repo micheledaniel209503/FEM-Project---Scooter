@@ -1,0 +1,475 @@
+FINISH
+/CLEAR, START, NEW  ! Clear previous data and start a new session
+
+! Import the CDB mesh
+/INPUT,'canotto_mesh','cdb'   ! Import the meshed section
+
+! Parameters definition
+
+!element thin tube
+R_in_thin = 15.05	!inner radius
+R_out_thin = 17.45	!outer radius
+
+!element thick tube
+R_in_thick = 20.45	!inner radius
+R_out_thick = 24.13	!outer radius
+
+! >>>>> MATERIAL PROPERTIES <<<<< TO BE MODIFIED
+E_Young = 210000  
+ni = 0.29	    
+Density=7.85e-6		
+
+! >>>>> other parameters <<<<<
+E_length_straight = 10	! element length (straight part)
+E_length_arc = 1
+Eps = 1E-4	! selection tolerance
+
+
+
+/PREP7  ! Modalità di pre-processing
+
+ET, 2, BEAM189  
+! Material properties
+MP, EX, 1, E_Young  
+MP, PRXY, 1, ni     
+MP, DENS, 1, density
+
+! assign material properties to the mesh elements
+ALLSEL, ALL
+EMODIF, ALL, MAT, 1
+
+! Data thick cross section (Cylindrical Tube)
+SECTYPE, 1, BEAM, CTUBE, thicktube
+SECDATA, R_in_thick, R_out_thick  
+
+! Data thin cross section (Cylindrical Tube)
+SECTYPE, 2, BEAM, CTUBE, thintube
+SECDATA, R_in_thin, R_out_thin  ! Parametri della sezione del tirante (tubo cavo)
+
+! >>>>> GEOMETRY DEFINITION <<<<<
+
+! Keypoints and lines creation (symmetric part, left side)
+K,1,-20.98,113.55,0
+K,2,-6.22,33.68,140.67
+K,3,62.97,44.17,139.36 ! Centro arco
+K,4,67.84,9.53,200
+K,5,565.45,79.47,200
+K,6,555.71,148.79,200 ! Centro arco
+K,7,611.61,106.66,200
+K,8,821.60,385.33,200
+K,9,877.51,343.2,200 ! Centro arco
+K,10,855.88,409.78,200 
+K,11,1226.2,530.11,200
+
+! Keypoints and lines creation (symmetric part, right side)
+K,12,-6.22,33.68,-140.67  
+K,13,62.97,44.17,-139.36 ! Arc center
+K,14,67.84,9.53,-200
+K,15,565.45,79.47,-200 
+K,16,555.71,148.79,-200 ! Arc center
+K,17,611.61,106.66,-200
+K,18,821.60,385.33,-200 
+K,19,877.51,343.2,-200 ! Arc center
+K,20,855.88,409.78,-200 
+K,21,1226.2,530.11,-200
+
+!Transverse sections
+K,22,1048.21,395.72,0 ! Arc center
+K,23,1105.73,490.96,200
+K,24,1105.73,490.96,-200
+K,25,672.18,187.04,200
+K,26,672.18,187.04,-200
+K,27,300,42.16,200
+K,28,300,495.44,0 ! Arc center
+K,29,300,42.16,-200
+
+!central section (steering wheel pivot)
+K,30,300,0,0
+K,31,58.25,0,0
+K,32,58.25,70,0 ! Arc center
+K,33,-10.58,57.28,0
+K,34,-86.00,465.45,0 ! Point of connnection with the imported mesh
+
+! Lines creation
+
+! symmetric part, left side
+L,1,2
+LARC,2,4,3,70
+L,4,27
+L,27,5
+LARC,5,7,6,70
+L,7,25
+L,25,8
+LARC,8,10,9,70
+L,10,23
+L,23,11
+
+! symmetric part, right side
+L,1,12
+LARC,12,14,13,70
+L,14,29
+L,29,15
+LARC,15,17,16,70
+L,17,26
+L,26,18
+LARC,18,20,19,70
+L,20,24
+L,24,21
+
+! Transverse sections
+LARC,11,21,22,300
+L,23,24
+L,25,26
+LARC,27,30,28,500
+LARC,30,29,28,500
+
+! Central section (steering wheel pivot)
+L,30,31
+LARC,31,33,32,70
+L,33,1
+L,1,34
+
+! Element definition
+
+! Left side straight lines
+LSEL,S,LINE,,1
+LSEL,A,LINE,,3
+LSEL,A,LINE,,4
+LSEL,A,LINE,,6
+LSEL,A,LINE,,7
+LSEL,A,LINE,,9
+LSEL,A,LINE,,10
+! Right side straight lines
+LSEL,A,LINE,,11
+LSEL,A,LINE,,13
+LSEL,A,LINE,,14
+LSEL,A,LINE,,16
+LSEL,A,LINE,,17
+LSEL,A,LINE,,19
+LSEL,A,LINE,,20
+! Transverse straight lines
+LSEL,A,LINE,,22
+LSEL,A,LINE,,23
+
+
+LESIZE, ALL,E_length_straight
+LATT,1,,2,,,,2
+LSEL,ALL,ALL
+
+! Left side arc lines
+LSEL,S,LINE,,2
+LSEL,A,LINE,,5
+LSEL,A,LINE,,8
+! Right side arc lines
+LSEL,A,LINE,,12
+LSEL,A,LINE,,15
+LSEL,A,LINE,,18
+! Transverse arc lines
+LSEL,A,LINE,,21
+LSEL,A,LINE,,24
+LSEL,A,LINE,,25
+
+LESIZE, ALL,E_length_arc
+LATT,1,,2,,,,2
+LSEL,ALL,ALL
+! Central section straight lines (thick tube)
+LSEL,S,LINE,,26
+LSEL,A,LINE,,28
+LSEL,A,LINE,,29
+LESIZE, ALL,E_length_straight
+LATT,1,,2,,,,1
+LSEL,ALL,ALL
+! Central section arc lines (thick tube)
+LSEL,S,LINE,,27
+LESIZE, ALL,E_length_arc
+LATT,1,,2,,,,1
+LSEL,ALL,ALL
+
+! ORIENTATION OF SECTION FOR L3, L4
+LSEL, S, LINE,,3
+LSEL, A, LINE,,4
+LATT,1,,2,,6,,2
+LSEL, ALL, ALL
+! ORIENTATION OF SECTION FOR L13, L14
+LSEL, S, LINE,,13
+LSEL, A, LINE,,14
+LATT,1,,2,,16,,2
+LSEL, ALL, ALL
+! ORIENTATION OF SECTION FOR L9, L10
+LSEL, S, LINE,,9
+LSEL, A, LINE,,10
+LATT,1,,2,,9,,2
+LSEL, ALL, ALL
+! ORIENTATION OF SECTION FOR L19, L20
+LSEL, S, LINE,,19
+LSEL, A, LINE,,20
+LATT,1,,2,,19,,2
+LSEL, ALL, ALL
+
+LMESH,ALL
+NUMMRG,NODE,0.01
+
+! MPC184 element
+ET,3,184
+KEYOPT,3,1,1 ! Rigid beam
+KEYOPT,3,2,1 ! Lagrange multiplier method
+TYPE,3
+
+! Interface between steering head and the rest of the frame, using MPC184
+
+ESEL, S, TYPE, , 2 !select only the BEAM189 nodes
+NSEL, R, LOC, Z, 0.0 - Eps, 0.0 + Eps
+NSEL, R, LOC, Y, 465.45 - eps, 465.45 + eps
+NSEL, R, LOC, X, -86.00 - eps, -86.00 + eps
+*GET, int_node, NODE, 0, NUM, MIN
+ALLSEL, ALL
+
+
+ESEL, S, TYPE, , 1 !select only the SOLID187 nodes
+
+LOCAL,11,0         
+CSYS,0
+LOCAL,11,0, -86.00,465.45,0,10.469
+CSYS,11
+NSEL, S, LOC, Z, -30 , 30
+NSEL, R, LOC, Y, 0.0 -eps, 0.0 + eps
+NSEL, R, LOC, X, -30, 30
+CSYS,0
+! Connect SOLID187 nodes to the BEAM189 nodes
+*GET, num_nodes, NODE, 0, COUNT
+*DO, ii, 1, num_nodes, 1
+    *GET, n_node, NODE, 0, NUM, MAX
+    *IF, n_node, NE, int_node, THEN
+        E, int_node, n_node
+    *ENDIF
+    NSEL, U, NODE, , n_node
+*ENDDO
+ALLSEL, ALL
+
+! Define the center of the rear suspension pivot LEFT SIDE (Master nodes)
+*GET, max_node_L, NODE, 0, NUM, MAXD
+N, max_node_L+1, 1101.3, 433.5, 200
+!N,3866,1101.3,433.5,-200
+! Define a local RF. positioned at K23 and oriented as the beam
+LOCAL,12,0         
+CSYS,0
+LOCAL,12,0, 1105.7,491.0,200,18.0
+CSYS,12
+! Select the nodes that lies in the interval +35, -35 mm from the RF
+NSEL, S, LOC, Z, 0.0 - Eps, 0.0 + Eps
+NSEL, R, LOC, Y, 0.0 - 1, 0.0 + 1
+NSEL, R, LOC, X, 0.0 - 35, 0.0 + 35
+CSYS,0
+*GET, num_nodes, NODE, 0, COUNT
+*DO, ii, 1, num_nodes,1
+    *GET, n_node, NODE, 0, NUM, MAX
+    E,max_node_L+1,n_node
+    NSEL, U, NODE, , n_node
+*ENDDO
+ALLSEL, ALL
+
+! Define the center of the rear suspension pivot RIGHT SIDE (Master nodes)
+*GET, max_node_R, NODE, 0, NUM, MAXD
+N,max_node_R+1,1101.3,433.5,-200
+ALLSEL, ALL
+! Define a local RF. positioned at K23 and oriented as the beam
+LOCAL,13,0         
+CSYS,0
+LOCAL,13,0, 1105.7,491.0,-200,18.0
+CSYS,13
+! Select the nodes that lies in the interval +35, -35 mm from the RF
+NSEL, S, LOC, Z, 0.0 - Eps, 0.0 + Eps
+NSEL, R, LOC, Y, 0.0 - 1, 0.0 + 1
+NSEL, R, LOC, X, 0.0 - 35, 0.0 + 35
+CSYS,0
+*GET, num_nodes, NODE, 0, COUNT
+*DO, ii, 1, num_nodes,1
+    *GET, n_node, NODE, 0, NUM, MAX
+    E,max_node_R+1,n_node
+    NSEL, U, NODE, , n_node
+*ENDDO
+ALLSEL, ALL
+
+! Model the steering head pin
+*GET, node_DOWN, NODE, 0, NUM, MAXD
+N, node_DOWN+1, -171.87,474.88,0 ! node down
+*GET, node_UP, NODE, 0, NUM, MAXD
+N, node_UP+1, -54.65,751.3,0 ! node down
+ALLSEL, ALL
+! Lower bearing
+LOCAL, 14,0
+CSYS,0
+LOCAL,14,0, -171.87,474.88,0,-23.0
+CSYS,14
+NSEL, S, LOC, Y, -0.1 - Eps, 0.1 + Eps
+NSEL, R, LOC, X, -25.0 - Eps, 25.0 + Eps
+NSEL, R, LOC, Z, -25.0 - Eps, 25.0 + Eps
+CSYS,0
+*GET, num_nodes, NODE, 0, COUNT
+*DO, ii, 1, num_nodes, 1
+    *GET, n_node, NODE, 0, NUM, MAX
+    *IF, n_node, NE, node_DOWN+1, THEN
+        E, node_DOWN+1, n_node
+    *ENDIF
+    NSEL, U, NODE, , n_node
+*ENDDO
+ALLSEL, ALL
+
+! Upper bearing
+LOCAL, 15,0
+CSYS,0
+LOCAL, 15,0, -54.65,751.3,0,-23.0
+NSEL, S, LOC, Y, -0.1 - 0.4, 0.1 + 0.4
+NSEL, R, LOC, X, -25.0 - Eps, 25.0 + Eps
+NSEL, R, LOC, Z, -25.0 - Eps, 25.0 + Eps
+CSYS, 0
+*GET, num_nodes, NODE, 0, COUNT
+*DO, ii, 1, num_nodes, 1
+    *GET, n_node, NODE, 0, NUM, MAX
+    *IF, n_node, NE, node_UP+1, THEN
+        E, node_UP+1, n_node
+    *ENDIF
+    NSEL, U, NODE, , n_node
+*ENDDO
+ALLSEL, ALL
+CSYS, 0
+
+! Connect the two bearings to simulate the presence of the steering head pin
+E, node_DOWN+1, node_UP+1
+ALLSEL, ALL
+
+! Define the front wheel pivot (Master nodes)
+*GET, max_node_F, NODE, 0, NUM, MAXD
+N, max_node_F+1, -373.4, 0, 0
+ALLSEL, ALL
+
+! Connect the front wheel pivot to the steering head pin
+E, node_DOWN+1, max_node_F+1
+ALLSEL, ALL
+
+/ESHAPE,1
+/VIEW, 1, 1, 1, 1
+EPLOT
+FINISH  
+
+
+/SOLUTION
+ANTYPE, STATIC, NEW   !static solution
+
+! >>>>> CONSTRAINT DEFINITION <<<<<
+
+! Constraint on the rear suspension
+NSEL, S, NODE, , max_node_L+1, max_node_R+1
+D, ALL, UX, 0
+D, ALL, UY, 0
+D, ALL, UZ, 0
+ALLSEL, ALL
+
+! Constraint on the front wheel pivot
+NSEL, S, NODE, , max_node_F+1
+D, ALL, UY, 0
+D, ALL, UZ, 0
+D, ALL, ROTX, 0
+D, ALL, ROTY, 0
+ALLSEL, ALL
+
+! >>>>> LOAD DEFINITION <<<<<
+
+! Geometric data
+L1 = 0.600 ! (m) 
+p = 1.4 ! (m)
+
+! External forces data
+g = 9.81 ! (m/s^2) 
+m_r = 75 ! (kg) mass of rider and passenger
+m_p = 50 ! (kg) mass of passenger
+m = 120 ! (kg) mass of the vehicle
+M = m+m_r+m_p ! (kg) Total mass of the vehicle and passengers
+W_r = m_r*g ! (N) Weight of rider
+W_p = m_p*g ! (N) Weight of passenger
+Wtot = M*g ! (N) Total weight
+W1 = W_r*0.5 ! (N) Weight on the cradle (rider)
+W2 = W_r*0.5 ! (N) Weight on the front seat (rider)
+W3 = W_p ! (N) Weight on the back seat (passenger)
+Wbatt = 21*g ! Battery weight (N)
+Weng = 30*g ! Engine weight (N)
+
+! LOADS
+
+! Cradle
+W1_half = W1/2
+LSEL, S, LINE,,3
+*GET, L3_length, LINE, 3, LENGTH
+w1_half_press = W1_half/(L3_length) ! Pressure on the lines (N/mm)
+ESLL, S
+SFBEAM, ALL, 1, PRES, w1_half_press
+LSEL, S, LINE,,13
+ESLL, S
+SFBEAM, ALL, 1, PRES, w1_half_press
+
+ALLSEL,ALL
+
+! Front seat
+W2_half = W2/2
+*GET, L9_length, LINE, 9, LENGTH
+LSEL, S, LINE,,9
+w2_half_press = W2_half/L9_length ! Pressure on the lines (N/mm^2 or MPa)
+ESLL, S
+SFBEAM, ALL, 1, PRES, -w2_half_press
+LSEL, S, LINE,,19
+ESLL, S
+SFBEAM, ALL, 1, PRES, -w2_half_press
+
+ALLSEL,ALL
+
+! Back seat
+W3_half = W3/2
+*GET, L10_length, LINE, 10, LENGTH
+LSEL, S, LINE,,10
+w3_half_press = W3_half/(L10_length+L9_length) ! Pressure on the lines (N/mm^2 or MPa)
+ESLL, S
+SFBEAM, ALL, 1, PRES, -w3_half_press
+LSEL, S, LINE,,20
+ESLL, S
+SFBEAM, ALL, 1, PRES, -w3_half_press
+
+ALLSEL, ALL
+
+
+! Battery
+Wbatt_half = Wbatt/2
+LSEL, S, LINE,,4 ! Left side line 4
+*GET, L4_length, LINE, 4, LENGTH
+w_batt_half_press = Wbatt_half/L4_length ! Pressure on the line (N/mm)
+ESLL, S
+SFBEAM, ALL, 1, PRES, w_batteries_half_press
+LSEL, S, LINE,,14  ! Right side line 14
+ESLL, S
+SFBEAM, ALL, 1, PRES, w_batt_half_press
+ALLSEL,ALL
+
+! Engine
+Weng_half = Weng/2
+NSEL, S, NODE, , max_node_C+1 ! Center of the swingarm pivot
+F, max_node_C+1, FY, -W_engine
+ALLSEL, ALL
+
+CSYS, 0
+ACEL,,9.81	!m/s2
+
+
+
+ALLSEL,ALL
+
+
+outres,all,all
+Eqslv,pcg
+Solve
+FINISH
+
+/REPLOT
+
+/POST1
+SET,1
+PLDISP,2
+PLNSOL, S,EQV, 0,1.0
