@@ -345,6 +345,78 @@ E, max_node_H+1, node_UP
 
 ALLSEL, ALL
 
+! Create swingarm - wheel connection
+N, 10000, 664.58, 86.38, 205.0 ! left swingarm
+N, 10001, 664.58, 86.38, -205.0! right swingarm
+N, 10002, 936.56, 86.38, 200 ! left swingarm wheel connection
+N, 20002, 936.56, 86.38, 200 ! left swingarm wheel connection 2
+N, 30002, 936.56, 86.38, 200 ! left swingarm wheel connection 3
+N, 10003, 936.56, 86.38, -200 ! right swingarm wheel connection
+N, 20003, 936.56, 86.38, -200 ! right swingarm wheel connection 2
+N, 30003, 936.56, 86.38, -200 ! right swingarm wheel connection 3
+N, 10004, 1101.3, 433.5, 200 ! left shock absorber mounting point
+N, 10005, 1101.3, 433.5, -200 ! right shock absorber mounting point
+
+! Local reference frames
+LOCAL, 10000
+LOCAL, 10001
+LOCAL, 10002
+LOCAL, 20002
+LOCAL, 10003
+LOCAL, 20003
+LOCAL, 10004
+LOCAL, 10005
+
+! Internal pins
+ET, 3, MPC184 ! revolute joint element
+KEYOPT,3,1,6
+KEYOPT,3,4,1
+KEYOPT,3,2,1
+SECTYPE,3,JOINT,REVO,REVOLUTE   
+SECJOINT,,   10000,   10001 
+SECJOINT,FRIC,0,0,0 
+SECDATA,,,, ,,  
+TYPE,   3   
+MAT,       1
+REAL,   
+ESYS,   10000   
+SECNUM,   3 
+
+! Create revolute joint for the swingarm left side
+SECJOINT, LSYS, 10000
+E, 10000, max_node_L+1
+
+! Create revolute joint for the swingarm right side
+SECJOINT, LSYS, 10001
+E, 10001, max_node_R+1
+
+! Create revolute joint for the swingarm wheel left side
+SECJOINT, LSYS, 10002
+E, 10002, 20002
+! Create revolute joint for the swingarm wheel right side
+SECJOINT, LSYS, 10003
+E, 10003, 20003
+
+! Create revolute joint for the shock absorber left side
+SECJOINT, LSYS, 10004
+E, 10004, max_node_L_SA+1
+! Create revolute joint for the shock absorber right side
+SECJOINT, LSYS, 10005
+E, 10005, max_node_R_SA+1
+
+
+! Connect elements
+TYPE, 2
+! Connect shock absorbers to wheel's revolute joints
+E, max_node_L_SA+1, 10002
+E, max_node_R_SA+1, 10003
+! Connect swingarm to wheel's revolute joints
+E, 10000, 10002
+E, 10001, 10003
+
+
+ALLSEL, ALL
+
 /ESHAPE,1
 /VIEW, 1, 1, 1, 1
 EPLOT
@@ -374,13 +446,20 @@ NSEL, S, NODE, , max_node_FC+1
  ! D, ALL, ROTZ,0 free rotation around Z axis
 ALLSEL, ALL
 
-! Constrain the rear swingarm
-NSEL, S, NODE, , max_node_L_SA+1
+! Constrain the rear wheel
+NSEL, S, NODE, , 20002
  D, ALL, UY, 0
+ D, ALL, UZ, 0
+ D, ALL, ROTX,0
+ D, ALL, ROTY,0
 ALLSEL, ALL
-NSEL, S, NODE, , max_node_R_SA+1
+NSEL, S, NODE, , 20003
  D, ALL, UY, 0
+ D, ALL, UZ, 0
+ D, ALL, ROTX,0
+ D, ALL, ROTY,0
 ALLSEL, ALL
+
 
 ! >>>>>> LOAD DEFINITION <<<<<
 
@@ -493,3 +572,4 @@ FINISH
 /POST1
 SET,1
 PLDISP,2
+PLESOL, S,EQV, 0,1.0
