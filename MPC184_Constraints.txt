@@ -350,8 +350,8 @@ p = 1.4 ! (m)
 g = 9.81 ! (m/s^2) 
 m_r = 75 ! (kg) mass of rider and passenger
 m_p = 50 ! (kg) mass of passenger
-m = 120 ! (kg) mass of the vehicle
-M = m+m_r+m_p ! (kg) Total mass of the vehicle and passengers
+m_kerb = 120 ! (kg) mass of the vehicle
+M = m_kerb+m_r+m_p ! (kg) Total mass of the vehicle and passengers
 W_r = m_r*g ! (N) Weight of rider
 W_p = m_p*g ! (N) Weight of passenger
 Wtot = M*g ! (N) Total weight
@@ -360,6 +360,10 @@ W2 = W_r*0.5 ! (N) Weight on the front seat (rider)
 W3 = W_p ! (N) Weight on the back seat (passenger)
 Wbatt = 21*g ! Battery weight (N)
 Weng = 30*g ! Engine weight (N)
+
+m_chassis = 20 ! Mass of the chassis (kg)
+m_res = m_kerb-21-30 ! Residual mass of the vehicle
+a_y_eq = g*(m_res/m_chassis) ! = 3.4*g Equivalent acceleration in the y direction (m/s^2)
 
 ! LOADS
 
@@ -409,7 +413,7 @@ LSEL, S, LINE,,4 ! Left side line 4
 *GET, L4_length, LINE, 4, LENGTH
 w_batt_half_press = Wbatt_half/L4_length ! Pressure on the line (N/mm)
 ESLL, S
-SFBEAM, ALL, 1, PRES, w_batteries_half_press
+SFBEAM, ALL, 1, PRES, w_batt_half_press
 LSEL, S, LINE,,14  ! Right side line 14
 ESLL, S
 SFBEAM, ALL, 1, PRES, w_batt_half_press
@@ -421,7 +425,7 @@ NSEL, S, NODE, , max_node_C+1 ! Center of the swingarm pivot
 F, max_node_C+1, FY, -W_engine
 ALLSEL, ALL
 
-ACEL,,9.81	!m/s2
+ACEL,,a_y_eq	!m/s2
 
 outres,all,all
 Eqslv,pcg

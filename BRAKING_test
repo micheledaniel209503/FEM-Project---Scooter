@@ -343,77 +343,6 @@ NSEL, S, NODE, , max_node_H+1
 NSEL, A, NODE, , node_UP
 E, max_node_H+1, node_UP
 
-ALLSEL, ALL
-
-! Create swingarm - wheel connection
-N, 10000, 664.58, 86.38, 205.0 ! left swingarm
-N, 10001, 664.58, 86.38, -205.0! right swingarm
-N, 10002, 936.56, 86.38, 200 ! left swingarm wheel connection
-N, 20002, 936.56, 86.38, 200 ! left swingarm wheel connection 2
-N, 30002, 936.56, 86.38, 200 ! left swingarm wheel connection 3
-N, 10003, 936.56, 86.38, -200 ! right swingarm wheel connection
-N, 20003, 936.56, 86.38, -200 ! right swingarm wheel connection 2
-N, 30003, 936.56, 86.38, -200 ! right swingarm wheel connection 3
-N, 10004, 1101.3, 433.5, 200 ! left shock absorber mounting point
-N, 10005, 1101.3, 433.5, -200 ! right shock absorber mounting point
-
-! Local reference frames
-LOCAL, 10000
-LOCAL, 10001
-LOCAL, 10002
-LOCAL, 20002
-LOCAL, 10003
-LOCAL, 20003
-LOCAL, 10004
-LOCAL, 10005
-
-! Internal pins
-ET, 3, MPC184 ! revolute joint element
-KEYOPT,3,1,6
-KEYOPT,3,4,1
-KEYOPT,3,2,1
-SECTYPE,3,JOINT,REVO,REVOLUTE   
-SECJOINT,,   10000,   10001 
-SECJOINT,FRIC,0,0,0 
-SECDATA,,,, ,,  
-TYPE,   3   
-MAT,       1
-REAL,   
-ESYS,   10000   
-SECNUM,   3 
-
-! Create revolute joint for the swingarm left side
-SECJOINT, LSYS, 10000
-E, 10000, max_node_L+1
-
-! Create revolute joint for the swingarm right side
-SECJOINT, LSYS, 10001
-E, 10001, max_node_R+1
-
-! Create revolute joint for the swingarm wheel left side
-SECJOINT, LSYS, 10002
-E, 10002, 20002
-! Create revolute joint for the swingarm wheel right side
-SECJOINT, LSYS, 10003
-E, 10003, 20003
-
-! Create revolute joint for the shock absorber left side
-SECJOINT, LSYS, 10004
-E, 10004, max_node_L_SA+1
-! Create revolute joint for the shock absorber right side
-SECJOINT, LSYS, 10005
-E, 10005, max_node_R_SA+1
-
-
-! Connect elements
-TYPE, 2
-! Connect shock absorbers to wheel's revolute joints
-E, max_node_L_SA+1, 10002
-E, max_node_R_SA+1, 10003
-! Connect swingarm to wheel's revolute joints
-E, 10000, 10002
-E, 10001, 10003
-
 
 ALLSEL, ALL
 
@@ -446,24 +375,16 @@ NSEL, S, NODE, , max_node_FC+1
  ! D, ALL, ROTZ,0 free rotation around Z axis
 ALLSEL, ALL
 
-! Constrain the rear wheel
-NSEL, S, NODE, , 20002
+! Constrain the rear shocks
+NSEL, S, NODE, , max_node_L_SA+1, max_node_R_SA+1
  D, ALL, UY, 0
- D, ALL, UZ, 0
- D, ALL, ROTX,0
- D, ALL, ROTY,0
-ALLSEL, ALL
-NSEL, S, NODE, , 20003
- D, ALL, UY, 0
- D, ALL, UZ, 0
- D, ALL, ROTX,0
- D, ALL, ROTY,0
-ALLSEL, ALL
+ ALLSEL, ALL
 
 
 ! >>>>>> LOAD DEFINITION <<<<<
 
 ! Parameters
+toRad = 3.141592653589793/180.0 ! conversion factor from degrees to radians
 g = 9.81 ! m/s^2
 m_r = 75 ! kg rider's mass 
 m = 120 ! kg scooter's mass
@@ -494,15 +415,20 @@ NSEL, S, NODE, , max_node_H+1
 ALLSEL, ALL
 
 ! Apply rider's inertia force on cradle (distributed load)
+theta_cradle = 8*toRad ! Cradle beams angle with respect to x global axis 
 *SET, F_ped_half, F_ped*0.5
 LSEL, S, LINE,,3 ! Left side line 3 
 *GET, L3_length, LINE, 3, LENGTH
 *SET, f_ped_half_press, F_ped_half/L3_length ! Pressure on the line (N/mm)
+*SET, f_ped_half_press_x_rot, f_ped_half_press*cos(theta_cradle) ! rotated x
+*SET, f_ped_half_press_y_rot, f_ped_half_press*sin(theta_cradle) ! rotated y 
 ESLL, S
-SFBEAM, ALL, 3, PRES, -f_ped_half_press
+SFBEAM, ALL, 3, PRES, -f_ped_half_press_x_rot
+SFBEAM, ALL, 1, PRES, -f_ped_half_press_y_rot
 LSEL, S, LINE,,13  ! Right side line 13
 ESLL, S
-SFBEAM, ALL, 3, PRES, -f_ped_half_press
+SFBEAM, ALL, 3, PRES, -f_ped_half_press_x_rot
+SFBEAM, ALL, 1, PRES, -f_ped_half_press_y_rot
 ALLSEL, ALL
 
 ! Apply rider's weight on cradle (distributed load)
@@ -517,19 +443,25 @@ SFBEAM, ALL, 1, PRES, w_1_half_press
 ALLSEL, ALL
 
 ! Apply rider's weight and inertia on front seat (distributed load)
+theta_cradle = 18*toRad
 *SET, W_2_half, W_2*0.5
 *SET, F_sel_half, F_sel*0.5
 *GET, L9_length, LINE, 9, LENGTH
 LSEL, S, LINE,,9 ! Left side line 9
 *SET, w_2_half_press, W_2_half/L9_length ! Pressure on the line (N/mm)
 *SET, f_2_half_press, F_sel_half/L9_length
+*SET, f_2_half_press_x_rot, f_2_half_press*cos(theta_cradle) ! rotated x
+*SET, f_2_half_press_y_rot, f_2_half_press*sin(theta_cradle) ! rotated y
 ESLL, S
 SFBEAM, ALL, 1, PRES, -w_2_half_press
-SFBEAM, ALL, 3, PRES, -f_2_half_press
+SFBEAM, ALL, 1, PRES, f_2_half_press_y_rot
+SFBEAM, ALL, 3, PRES, -f_2_half_press_x_rot
 LSEL, S, LINE,,19  ! Right side line 19
 ESLL, S
 SFBEAM, ALL, 1, PRES, -w_2_half_press
-SFBEAM, ALL, 3, PRES, -f_2_half_press
+SFBEAM, ALL, 1, PRES, f_2_half_press_y_rot
+SFBEAM, ALL, 3, PRES, -f_2_half_press_x_rot
+
 ALLSEL, ALL
 
 ! Apply batteries' weight and inertia on the cradle (distributed load)
@@ -539,13 +471,17 @@ LSEL, S, LINE,,4 ! Left side line 4
 *GET, L4_length, LINE, 4, LENGTH
 *SET, w_batteries_half_press, W_batteries_half/L4_length ! Pressure on the line (N/mm)
 *SET, f_batteries_half_press, F_batteries_half/L4_length ! Pressure on the line (N/mm)
+*SET, f_batteries_half_press_x_rot, f_batteries_half_press*cos(theta_cradle) ! rotated x
+*SET, f_batteries_half_press_y_rot, f_batteries_half_press*sin(theta_cradle) ! rotated y
 ESLL, S
 SFBEAM, ALL, 1, PRES, w_batteries_half_press
-SFBEAM, ALL, 3, PRES, -f_batteries_half_press
+SFBEAM, ALL, 3, PRES, -f_batteries_half_press_x_rot
+SFBEAM, ALL, 1, PRES, -f_batteries_half_press_y_rot
 LSEL, S, LINE,,14  ! Right side line 14
 ESLL, S
 SFBEAM, ALL, 1, PRES, w_batteries_half_press
-SFBEAM, ALL, 3, PRES, -f_batteries_half_press
+SFBEAM, ALL, 3, PRES, -f_batteries_half_press_x_rot
+SFBEAM, ALL, 1, PRES, -f_batteries_half_press_y_rot
 ALLSEL, ALL
 
 ! Apply engine's weight and inertia near the swingarm pivot
