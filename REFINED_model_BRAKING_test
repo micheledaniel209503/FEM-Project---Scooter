@@ -2,7 +2,7 @@ FINISH
 /CLEAR, START, NEW  ! Clear previous data and start a new session
 
 ! Import the CDB mesh
-/INPUT,'canotto_mesh','cdb'   ! Import the meshed section
+/INPUT,'canottoV3_rinforzato','cdb'   ! Import the meshed section
 
 ! Parameters definition
 
@@ -335,13 +335,12 @@ N, node_DOWN+1, -171.87,474.88,0 ! node down
 N, node_UP+1, -54.65,751.3,0 ! node down
 ALLSEL, ALL
 ! Lower bearing
-LOCAL, 14,0
+LOCAL, 14,1
 CSYS,0
-LOCAL,14,0, -171.87,474.88,0,-23.0
+LOCAL,14,1, -171.87,474.88,0,-23.0,-90
 CSYS,14
-NSEL, S, LOC, Y, -0.1 - Eps, 0.1 + Eps
-NSEL, R, LOC, X, -25.0 - Eps, 25.0 + Eps
-NSEL, R, LOC, Z, -25.0 - Eps, 25.0 + Eps
+NSEL, S, LOC, Z, 0.0 - Eps, 15.0 + Eps
+NSEL, R, LOC, X, R_out_thick - 0.1, R_out_thick + 0.1
 CSYS,0
 *GET, num_nodes, NODE, 0, COUNT
 *DO, ii, 1, num_nodes, 1
@@ -354,12 +353,9 @@ CSYS,0
 ALLSEL, ALL
 
 ! Upper bearing
-LOCAL, 15,0
-CSYS,0
-LOCAL, 15,0, -54.65,751.3,0,-23.0
-NSEL, S, LOC, Y, -0.1 - 0.4, 0.1 + 0.4
-NSEL, R, LOC, X, -25.0 - Eps, 25.0 + Eps
-NSEL, R, LOC, Z, -25.0 - Eps, 25.0 + Eps
+CSYS, 14
+NSEL, S, LOC, Z, 300 -15 - Eps, 300 + Eps
+NSEL, R, LOC, X, R_out_thick - 0.1, R_out_thick + 0.1
 CSYS, 0
 *GET, num_nodes, NODE, 0, COUNT
 *DO, ii, 1, num_nodes, 1
@@ -374,7 +370,6 @@ CSYS, 0
 
 ! Connect the two bearings to simulate the presence of the steering head pin
 E, node_DOWN+1, node_UP+1
-ALLSEL, ALL
 
 ! Define the front wheel pivot (Master nodes)
 *GET, max_node_F, NODE, 0, NUM, MAXD
@@ -536,6 +531,7 @@ ALLSEL, ALL
 
 ! Apply horizontal and vertical accelerations to the global reference frame to account for the rest of the scooter's mass
 ACEL, a_x, g, 0
+
 
 OUTRES, ALL, ALL
 EQSLV, PCG

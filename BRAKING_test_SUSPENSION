@@ -473,6 +473,7 @@ ALLSEL, ALL
 ! >>>>>> LOAD DEFINITION <<<<<
 
 ! Parameters
+toRad = 3.141592653589793/180.0 ! conversion factor from degrees to radians
 g = 9.81 ! m/s^2
 m_r = 75 ! kg rider's mass 
 m = 120 ! kg scooter's mass
@@ -503,15 +504,20 @@ NSEL, S, NODE, , max_node_H+1
 ALLSEL, ALL
 
 ! Apply rider's inertia force on cradle (distributed load)
+theta_cradle = 8*toRad ! Cradle beams angle with respect to x global axis 
 *SET, F_ped_half, F_ped*0.5
 LSEL, S, LINE,,3 ! Left side line 3 
 *GET, L3_length, LINE, 3, LENGTH
 *SET, f_ped_half_press, F_ped_half/L3_length ! Pressure on the line (N/mm)
+*SET, f_ped_half_press_x_rot, f_ped_half_press*cos(theta_cradle) ! rotated x
+*SET, f_ped_half_press_y_rot, f_ped_half_press*sin(theta_cradle) ! rotated y 
 ESLL, S
-SFBEAM, ALL, 3, PRES, -f_ped_half_press
+SFBEAM, ALL, 3, PRES, -f_ped_half_press_x_rot
+SFBEAM, ALL, 1, PRES, -f_ped_half_press_y_rot
 LSEL, S, LINE,,13  ! Right side line 13
 ESLL, S
-SFBEAM, ALL, 3, PRES, -f_ped_half_press
+SFBEAM, ALL, 3, PRES, -f_ped_half_press_x_rot
+SFBEAM, ALL, 1, PRES, -f_ped_half_press_y_rot
 ALLSEL, ALL
 
 ! Apply rider's weight on cradle (distributed load)
@@ -526,19 +532,25 @@ SFBEAM, ALL, 1, PRES, w_1_half_press
 ALLSEL, ALL
 
 ! Apply rider's weight and inertia on front seat (distributed load)
+theta_cradle = 18*toRad
 *SET, W_2_half, W_2*0.5
 *SET, F_sel_half, F_sel*0.5
 *GET, L9_length, LINE, 9, LENGTH
 LSEL, S, LINE,,9 ! Left side line 9
 *SET, w_2_half_press, W_2_half/L9_length ! Pressure on the line (N/mm)
 *SET, f_2_half_press, F_sel_half/L9_length
+*SET, f_2_half_press_x_rot, f_2_half_press*cos(theta_cradle) ! rotated x
+*SET, f_2_half_press_y_rot, f_2_half_press*sin(theta_cradle) ! rotated y
 ESLL, S
 SFBEAM, ALL, 1, PRES, -w_2_half_press
-SFBEAM, ALL, 3, PRES, -f_2_half_press
+SFBEAM, ALL, 1, PRES, f_2_half_press_y_rot
+SFBEAM, ALL, 3, PRES, -f_2_half_press_x_rot
 LSEL, S, LINE,,19  ! Right side line 19
 ESLL, S
 SFBEAM, ALL, 1, PRES, -w_2_half_press
-SFBEAM, ALL, 3, PRES, -f_2_half_press
+SFBEAM, ALL, 1, PRES, f_2_half_press_y_rot
+SFBEAM, ALL, 3, PRES, -f_2_half_press_x_rot
+
 ALLSEL, ALL
 
 ! Apply batteries' weight and inertia on the cradle (distributed load)
@@ -548,13 +560,17 @@ LSEL, S, LINE,,4 ! Left side line 4
 *GET, L4_length, LINE, 4, LENGTH
 *SET, w_batteries_half_press, W_batteries_half/L4_length ! Pressure on the line (N/mm)
 *SET, f_batteries_half_press, F_batteries_half/L4_length ! Pressure on the line (N/mm)
+*SET, f_batteries_half_press_x_rot, f_batteries_half_press*cos(theta_cradle) ! rotated x
+*SET, f_batteries_half_press_y_rot, f_batteries_half_press*sin(theta_cradle) ! rotated y
 ESLL, S
 SFBEAM, ALL, 1, PRES, w_batteries_half_press
-SFBEAM, ALL, 3, PRES, -f_batteries_half_press
+SFBEAM, ALL, 3, PRES, -f_batteries_half_press_x_rot
+SFBEAM, ALL, 1, PRES, -f_batteries_half_press_y_rot
 LSEL, S, LINE,,14  ! Right side line 14
 ESLL, S
 SFBEAM, ALL, 1, PRES, w_batteries_half_press
-SFBEAM, ALL, 3, PRES, -f_batteries_half_press
+SFBEAM, ALL, 3, PRES, -f_batteries_half_press_x_rot
+SFBEAM, ALL, 1, PRES, -f_batteries_half_press_y_rot
 ALLSEL, ALL
 
 ! Apply engine's weight and inertia near the swingarm pivot
