@@ -324,26 +324,6 @@ E, max_node_F+1, node_DOWN
 CSYS,0
 ALLSEL, ALL
 
-! Define the front wheel contact point
-*GET, max_node_FC, NODE, 0, NUM, MAXD
-N, max_node_FC+1, -373.4, -240.0, 0
-
-! MPC184 elements for the front wheel contact point
-NSEL, S, NODE, , max_node_FC+1
-NSEL, A, NODE, , max_node_F+1
-E, max_node_FC+1, max_node_F+1
-
-ALLSEL, ALL
-
-! Define the handlebar position
-*GET, max_node_H, NODE, 0, NUM, MAXD
-N, max_node_H+1, 3.960, 889.1, 0
-! MPC184 elements for the handlebar
-NSEL, S, NODE, , max_node_H+1
-NSEL, A, NODE, , node_UP
-E, max_node_H+1, node_UP
-
-ALLSEL, ALL
 
 ! Create swingarm - wheel connection
 N, 10000, 664.58, 86.38, 205.0 ! left swingarm
@@ -445,14 +425,13 @@ ANTYPE, STATIC, NEW   !static solution
 
 ! >>>>> CONSTRAINT DEFINITION <<<<<<
 
-! Constrain the front wheel's contact point (flip-over limit)
-NSEL, S, NODE, , max_node_FC+1
- D, ALL, UX, 0
- D, ALL, UY, 0
- D, ALL, UZ, 0
- D, ALL, ROTX,0
- D, ALL, ROTY,0
- ! D, ALL, ROTZ,0 free rotation around Z axis
+! Constraint on the front wheel pivot
+NSEL, S, NODE, , max_node_F+1
+D, ALL, UX, 0
+D, ALL, UY, 0
+D, ALL, UZ, 0
+D, ALL, ROTX, 0
+D, ALL, ROTY, 0
 ALLSEL, ALL
 
 ! Constrain the rear wheel

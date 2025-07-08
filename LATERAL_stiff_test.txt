@@ -338,8 +338,8 @@ toRad = 3.14159265359/180 ! convert degrees to radians
 toDeg = 180/3.14159265359 ! convert radians to degrees
 
 ! Apply lateral load to swingarm center
-NSEL, S, NODE, , max_node_Force+1
-F, max_node_Force+1, FZ, F ! N
+NSEL, S, NODE, , max_node_C+1
+F, max_node_C+1, FZ, F ! N
 ALLSEL, ALL
 
 OUTRES, ALL, ALL

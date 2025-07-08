@@ -1,9 +1,12 @@
 FINISH
 /CLEAR, START, NEW  ! Clear previous data and start a new session
 
-! --------------------------------------------
-! >>>>>> INPUT PARAMETERS <<<<<
-! --------------------------------------------
+! Import the CDB mesh
+
+! Set the specific model!
+/INPUT,'canotto_reinforced','cdb'   ! Import the meshed section
+
+! Parameters definition
 
 !element thin tube
 R_in_thin = 15.05	!inner radius
@@ -23,17 +26,19 @@ E_length_straight = 10	! element length (straight part)
 E_length_arc = 1
 Eps = 1E-4	! selection tolerance
 
-! --------------------------------------------
-! >>>>> PREPROCESSOR <<<<<
-! --------------------------------------------
 
-/PREP7 
 
-ET, 1, BEAM189  
+/PREP7  ! Modalità di pre-processing
+
+ET, 2, BEAM189  
 ! Material properties
 MP, EX, 1, E_Young  
 MP, PRXY, 1, ni     
-MP, DENS, 1, density  
+MP, DENS, 1, density
+
+! assign material properties to the mesh elements
+ALLSEL, ALL
+EMODIF, ALL, MAT, 1
 
 ! Data thick cross section (Cylindrical Tube)
 SECTYPE, 1, BEAM, CTUBE, thicktube
@@ -85,9 +90,7 @@ K,30,300,0,0
 K,31,58.25,0,0
 K,32,58.25,70,0 ! Arc center
 K,33,-10.58,57.28,0
-K,34,-113.26,612.95,0
-K,35,-54.65,751.03,0
-K,36,-171.87,474.88,0
+K,34,-86.00,465.45,0 ! Point of connnection with the imported mesh
 
 ! Lines creation
 
@@ -127,8 +130,6 @@ L,30,31
 LARC,31,33,32,70
 L,33,1
 L,1,34
-L,35,34
-L,34,36
 
 ! Element definition
 
@@ -154,7 +155,7 @@ LSEL,A,LINE,,23
 
 
 LESIZE, ALL,E_length_straight
-LATT,1,,1,,,,2
+LATT,1,,2,,,,2
 LSEL,ALL,ALL
 
 ! Left side arc lines
@@ -171,56 +172,86 @@ LSEL,A,LINE,,24
 LSEL,A,LINE,,25
 
 LESIZE, ALL,E_length_arc
-LATT,1,,1,,,,2
+LATT,1,,2,,,,2
 LSEL,ALL,ALL
 ! Central section straight lines (thick tube)
 LSEL,S,LINE,,26
 LSEL,A,LINE,,28
 LSEL,A,LINE,,29
-LSEL,A,LINE,,30
-LSEL,A,LINE,,31
 LESIZE, ALL,E_length_straight
-LATT,1,,1,,,,1
+LATT,1,,2,,,,1
 LSEL,ALL,ALL
 ! Central section arc lines (thick tube)
 LSEL,S,LINE,,27
 LESIZE, ALL,E_length_arc
-LATT,1,,1,,,,1
+LATT,1,,2,,,,1
 LSEL,ALL,ALL
 
 ! ORIENTATION OF SECTION FOR L3, L4
 LSEL, S, LINE,,3
 LSEL, A, LINE,,4
-LATT,1,,1,,6,,2
+LATT,1,,2,,6,,2
 LSEL, ALL, ALL
 ! ORIENTATION OF SECTION FOR L13, L14
 LSEL, S, LINE,,13
 LSEL, A, LINE,,14
-LATT,1,,1,,16,,2
+LATT,1,,2,,16,,2
 LSEL, ALL, ALL
 ! ORIENTATION OF SECTION FOR L9, L10
 LSEL, S, LINE,,9
 LSEL, A, LINE,,10
-LATT,1,,1,,9,,2
+LATT,1,,2,,9,,2
 LSEL, ALL, ALL
 ! ORIENTATION OF SECTION FOR L19, L20
 LSEL, S, LINE,,19
 LSEL, A, LINE,,20
-LATT,1,,1,,19,,2
+LATT,1,,2,,19,,2
 LSEL, ALL, ALL
 
-! MESHING
 LMESH,ALL
 NUMMRG,NODE,0.01
 
-! MPC184 ELEMENTS CREATION
+! MPC184 element
+ET,3,184
+KEYOPT,3,1,1 ! Rigid beam
+KEYOPT,3,2,1 ! Lagrange multiplier method
+TYPE,3
+
+! Interface between steering head and the rest of the frame, using MPC184
+
+ESEL, S, TYPE, , 2 !select only the BEAM189 nodes
+NSEL, R, LOC, Z, 0.0 - Eps, 0.0 + Eps
+NSEL, R, LOC, Y, 465.45 - eps, 465.45 + eps
+NSEL, R, LOC, X, -86.00 - eps, -86.00 + eps
+*GET, int_node, NODE, 0, NUM, MIN
+ALLSEL, ALL
+
+
+ESEL, S, TYPE, , 1 !select only the SOLID187 nodes
+
+LOCAL,11,0         
+CSYS,0
+LOCAL,11,0, -86.00,465.45,0,10.469
+CSYS,11
+NSEL, S, LOC, Z, -30 , 30
+NSEL, R, LOC, Y, 0.0 -eps, 0.0 + eps
+NSEL, R, LOC, X, -30, 30
+CSYS,0
+! Connect SOLID187 nodes to the BEAM189 nodes
+*GET, num_nodes, NODE, 0, COUNT
+*DO, ii, 1, num_nodes, 1
+    *GET, n_node, NODE, 0, NUM, MAX
+    *IF, n_node, NE, int_node, THEN
+        E, int_node, n_node
+    *ENDIF
+    NSEL, U, NODE, , n_node
+*ENDDO
+ALLSEL, ALL
+
 ! Define bearing position of the swingarm LEFT SIDE (Master nodes)
 *GET, max_node_L, NODE, 0, NUM, MAXD
 N, max_node_L+1, 664.58, 86.38, 205.0
 
-ET,2,184
-KEYOPT,2,1,1
-TYPE,2
 ! Select nodes for the left side (Slave nodes)
 LSEL, S, LINE,,5
 LSEL, A, LINE,,6
@@ -284,33 +315,69 @@ NROTAT, ALL
 CSYS,0
 ALLSEL, ALL
 
-! MPC184 elements for the steering head (KP 35 and 36)
-KSEL, S, KP, , 35
-KSEL, A, KP, , 36
-NSLK, S
-*GET, node_UP, NODE, 0, NUM, MIN
-*GET, node_DOWN, NODE, 0, NUM, MAX
-E, node_UP, node_DOWN
+! Model the steering head pin
+*GET, node_DOWN, NODE, 0, NUM, MAXD
+N, node_DOWN+1, -171.87,474.88,0 ! node down
+*GET, node_UP, NODE, 0, NUM, MAXD
+N, node_UP+1, -54.65,751.3,0 ! node down
 ALLSEL, ALL
-*GET, node_FRONT, NODE, 0, NUM, MAX
-N, node_FRONT+1, -373.4, 0.0, 0.0 ! point of application of the load
-E, node_FRONT+1, node_DOWN
+
+! SELECT BEARING THICKNESS
+bearing_thk = 15 ! [mm]
+! Lower bearing
+LOCAL, 14,1
+CSYS,0
+LOCAL,14,1, -171.87,474.88,0,-23.0,-90
+CSYS,14
+NSEL, S, LOC, Z, 0.0 - Eps, bearing_thk + Eps 
+NSEL, R, LOC, X, R_in_thick - 0.1, R_in_thick + 0.1
+CSYS,0
+*GET, num_nodes, NODE, 0, COUNT
+*DO, ii, 1, num_nodes, 1
+    *GET, n_node, NODE, 0, NUM, MAX
+    *IF, n_node, NE, node_DOWN+1, THEN
+        E, node_DOWN+1, n_node
+    *ENDIF
+    NSEL, U, NODE, , n_node
+*ENDDO
+ALLSEL, ALL
+CSYS, 0
+
+! Upper bearing
+CSYS, 14
+NSEL, S, LOC, Z, 300 -bearing_thk - Eps, 300 + Eps
+NSEL, R, LOC, X, R_in_thick - 0.1, R_in_thick + 0.1
+CSYS, 0
+*GET, num_nodes, NODE, 0, COUNT
+*DO, ii, 1, num_nodes, 1
+    *GET, n_node, NODE, 0, NUM, MAX
+    *IF, n_node, NE, node_UP+1, THEN
+        E, node_UP+1, n_node
+    *ENDIF
+    NSEL, U, NODE, , n_node
+*ENDDO
+ALLSEL, ALL
+CSYS, 0
+
+! Connect the two bearings to simulate the presence of the steering head pin
+E, node_DOWN+1, node_UP+1
+! Connect the steering head pin to the point of application of the load
+*GET, node_LOAD, NODE, 0, NUM, MAX
+N, node_LOAD+1, -373.4, 0.0, 0.0 ! point of application of the load
+E, node_LOAD+1, node_DOWN+1
+ALLSEL, ALL
 
 /ESHAPE,1
 /VIEW, 1, 1, 1, 1
 EPLOT
-FINISH  
+FINISH
 
 ! --------------------------------------------
 ! >>>>> SOLUTION <<<<<
 ! --------------------------------------------
 
 /SOLUTION
-NSUBST,10,100,2
-NROPT, FULL, , OFF
-NLGEOM, ON
-AUTOTS, ON
-ANTYPE, STATIC, NEW   !static solution
+ANTYPE, STATIC, NEW   ! static solution
 
 ! Swingarm bearings constraints (KP 35 and 36)
 NSEL, S, NODE, , max_node_L+1
@@ -319,7 +386,7 @@ D, ALL, ALL
 ALLSEL, ALL
 
 ! Parameters
-F = 1000 ! N
+F = 400 ! N
 intx_m = 0.4 ! m
 intx_mm = 400 ! mm
 Torque_Nmm = F*intx_mm ! Nmm
@@ -328,8 +395,8 @@ toRad = 3.14159265359/180 ! convert degrees to radians
 toDeg = 180/3.14159265359 ! convert radians to degrees
 
 ! Apply longitudinal load to steering head axis (local ref frame xx)
-NSEL, S, NODE, , node_FRONT+1
-F, node_FRONT+1, FX, F ! N
+NSEL, S, NODE, , node_LOAD+1
+F, node_LOAD+1, FX, F ! N
 ALLSEL, ALL
 
 OUTRES, ALL, ALL
@@ -348,12 +415,12 @@ SET,1
 PLDISP,2
 
 ! Get displacement values (global reference system) of the pivot center
-*GET, ux_FRONT, NODE, node_FRONT+1, U, X
+*GET, ux_LOAD, NODE, node_LOAD+1, U, X
 !*GET, uy_FRONT, NODE, node_FRONT+1, U, Y
 !*GET, uz_FRONT, NODE, node_FRONT+1, U, Z
 !utot_FRONT = SQRT(ux_FRONT**2 + uy_FRONT**2 + uz_FRONT**2)
-utot_FRONT = ux_FRONT
+utot_LOAD = ux_LOAD
 
-Klong_N_mm = F/utot_FRONT       ! N/mm
-Klong_N_m = (F/utot_FRONT)*1000 ! N/m
-Klong_kN_mm = (F / utot_FRONT) / 1000 ! kN/mm
+Klong_N_mm = F/utot_LOAD       ! N/mm
+Klong_N_m = (F/utot_LOAD)*1000 ! N/m
+Klong_kN_mm = (F / utot_LOAD) / 1000 ! kN/mm

@@ -303,6 +303,10 @@ FINISH
 ! --------------------------------------------
 
 /SOLUTION
+NSUBST,10,100,2
+NROPT, FULL, , OFF
+NLGEOM, ON
+AUTOTS, ON
 ANTYPE, STATIC, NEW   ! static solution
 
 ! Steering head constraint (KP 35 and 36)

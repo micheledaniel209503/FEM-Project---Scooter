@@ -2,7 +2,7 @@ FINISH
 /CLEAR, START, NEW  ! Clear previous data and start a new session
 
 ! Import the CDB mesh
-/INPUT,'canottoV3_rinforzato','cdb'   ! Import the meshed section
+/INPUT,'canottoV4_fillet','cdb'   ! Import the meshed section
 
 ! Parameters definition
 
